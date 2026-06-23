@@ -1,0 +1,6 @@
+{
+  "name": "PrepEasy",
+  "description": "Una aplicación inteligente de planificación de cenas rápidas para profesionales ocupados.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
