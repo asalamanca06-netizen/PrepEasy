@@ -121,6 +121,10 @@ export default function App() {
   const [plannerError, setPlannerError] = useState<string | null>(null);
   const [showMissingIngredients, setShowMissingIngredients] = useState(false);
   const plannerStatus: PlannerStatus = plannerError ? 'error' : weeklyPlan?.recipes?.length ? 'ready' : 'empty';
+  // IDs of ingredients present when plan was last generated — used to detect new expiring additions
+  const [planIngredientIds, setPlanIngredientIds] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('planIngredientIds') ?? '[]'); } catch { return []; }
+  });
   const [openrouterKey, setOpenrouterKey] = useState<string>(() => {
     const stored = localStorage.getItem('openrouter_api_key');
     const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -389,6 +393,9 @@ export default function App() {
 
       setWeeklyPlan(planned);
       localStorage.setItem('plannerMode', mode);
+      const ids = ingredients.map(i => i.id);
+      setPlanIngredientIds(ids);
+      localStorage.setItem('planIngredientIds', JSON.stringify(ids));
     } catch (e) {
       setPlannerError(e instanceof Error ? e.message : String(e));
     }
@@ -1299,35 +1306,29 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* CTA: expiring ingredients not covered by current plan */}
+                    {/* CTA: new expiring ingredients added after plan was generated */}
                     {(() => {
-                      const expiringSoon = ingredients.filter(i => i.expirationDays <= 7 && !pantryIsEmpty);
-                      // Find ingredients that have at least one recipe that could use them,
-                      // but that recipe is not in the current plan
-                      const uncoveredNames = expiringSoon
-                        .filter(ing => {
-                          const coveredByPlan = weeklyPlan.recipes.some(r =>
-                            ALL_RECIPES.find(ar => ar.title === r.title)?.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name))
-                          );
-                          const hasAnyRecipe = ALL_RECIPES.some(ar => ar.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name)));
-                          return !coveredByPlan && hasAnyRecipe;
-                        })
-                        .map(i => i.name);
-                      if (uncoveredNames.length === 0) return null;
+                      const newExpiring = ingredients.filter(i =>
+                        i.expirationDays <= 7 &&
+                        !pantryIsEmpty &&
+                        !planIngredientIds.includes(i.id) &&
+                        ALL_RECIPES.some(ar => ar.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name)))
+                      );
+                      if (newExpiring.length === 0) return null;
                       return (
                         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
                           <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                           <div className="flex-1 space-y-2">
                             <p className="text-sm font-semibold text-amber-900">
-                              {uncoveredNames.length === 1
-                                ? `"${uncoveredNames[0]}" vence pronto y no está en tu plan`
-                                : `${uncoveredNames.length} ingredientes vencen pronto y no están en tu plan`}
+                              {newExpiring.length === 1
+                                ? `Agregaste "${newExpiring[0].name}" — vence pronto, ¿incluirlo en tu plan?`
+                                : `Agregaste ${newExpiring.length} ingredientes que vencen pronto`}
                             </p>
                             <button
-                              onClick={() => generateWeeklyPlan(plannerMode, uncoveredNames)}
+                              onClick={() => generateWeeklyPlan(plannerMode, newExpiring.map(i => i.name))}
                               className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all"
                             >
-                              Regenerar incluyéndolos
+                              Recalcular recetas incluyéndolos
                             </button>
                           </div>
                         </div>
