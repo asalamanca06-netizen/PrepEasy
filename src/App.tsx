@@ -1337,9 +1337,15 @@ export default function App() {
 
                     {/* Expiring ingredients summary card */}
                     {(() => {
-                      const expiring = Array.from(new Map(
+                      const allExpiring = Array.from(new Map(
                         ingredients.filter(i => i.expirationDays <= 3 && !pantryIsEmpty).map(i => [i.name.toLowerCase(), i])
                       ).values());
+                      // Only show expiring ingredients that are actually used in the current plan
+                      const expiring = allExpiring.filter(ing =>
+                        weeklyPlan.recipes.some(r =>
+                          ALL_RECIPES.find(ar => ar.title === r.title)?.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name))
+                        )
+                      );
                       if (expiring.length === 0) return null;
                       const ingEmojis: Record<string, string> = {
                         espinaca: '🥬', aguacate: '🥑', tomate: '🍅', huevo: '🥚', pollo: '🍗',
