@@ -463,7 +463,7 @@ export default function App() {
       const picked: typeof scored[0]['recipe'][] = [];
       const categoryCount: Record<string, number> = {};
       for (const { recipe } of scored) {
-        const category = recipe.id.replace(/-\d+$/, ''); // e.g. "pollo", "platano"
+        const category = recipe.id.split('_')[1] ?? recipe.id; // e.g. 'aguacate', 'pollo', 'papa', 'platano'
         if ((categoryCount[category] ?? 0) < 2) {
           picked.push(recipe);
           categoryCount[category] = (categoryCount[category] ?? 0) + 1;
