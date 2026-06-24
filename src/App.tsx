@@ -46,6 +46,10 @@ import {
 import { Ingredient, Recipe, CookedHistory, AppState, ActiveTab, EnergyLevel, PlannerMode, PlannerStatus, WeeklyPlan, PlannedRecipe } from './types';
 import { INITIAL_INGREDIENTS, ALL_RECIPES, INITIAL_HISTORY, INGREDIENT_IMAGES, CATEGORY_FALLBACK_IMAGES } from './data';
 
+// Module-level plan cache — survives React StrictMode remounts and any re-render
+let _weeklyPlanCache: import('./types').WeeklyPlan | null = null;
+try { _weeklyPlanCache = JSON.parse(localStorage.getItem('weeklyPlan') ?? 'null'); } catch {}
+
 export default function App() {
   // Navigation & Core States
   const [activeTab, setActiveTab] = useState<ActiveTab>('inicio');
@@ -106,13 +110,13 @@ export default function App() {
   const [plannerMode, setPlannerMode] = useState<PlannerMode>(() => {
     return (localStorage.getItem('plannerMode') as PlannerMode) ?? 'rapido';
   });
-  const [weeklyPlan, setWeeklyPlanState] = useState<WeeklyPlan | null>(() => {
-    try { return JSON.parse(localStorage.getItem('weeklyPlan') ?? 'null'); } catch { return null; }
-  });
+  const [weeklyPlanVersion, setWeeklyPlanVersion] = useState(0);
+  const weeklyPlan = _weeklyPlanCache;
   const setWeeklyPlan = (plan: WeeklyPlan | null) => {
-    setWeeklyPlanState(plan);
+    _weeklyPlanCache = plan;
     if (plan) localStorage.setItem('weeklyPlan', JSON.stringify(plan));
     else localStorage.removeItem('weeklyPlan');
+    setWeeklyPlanVersion(v => v + 1);
   };
   const [plannerError, setPlannerError] = useState<string | null>(null);
   const [showMissingIngredients, setShowMissingIngredients] = useState(false);
@@ -1187,6 +1191,7 @@ export default function App() {
                   <p className="text-xs text-stone-500 mt-1">IA genera tu semana con lo que tienes en casa. v2</p>
                 </div>
 
+
                 {/* Mode selector */}
                 <div className="flex gap-2">
                   {([
@@ -1196,7 +1201,7 @@ export default function App() {
                   ] as { id: PlannerMode; label: string }[]).map(m => (
                     <button
                       key={m.id}
-                      onClick={() => { if (m.id !== plannerMode) { setPlannerMode(m.id); setPlannerError(null); setWeeklyPlan(null); } }}
+                      onClick={() => { if (m.id !== plannerMode) { setPlannerMode(m.id); setPlannerError(null); } }}
                       className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all border ${
                         plannerMode === m.id
                           ? 'bg-prepeasy-primary text-white border-prepeasy-primary'
