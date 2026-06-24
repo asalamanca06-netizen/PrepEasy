@@ -235,7 +235,6 @@ export default function App() {
     setShowAddIngredientModal(false);
     setPantryIsEmpty(false);
 
-    setActiveTab('inicio');
   };
 
   const openEditIngredient = (ing: Ingredient) => {
