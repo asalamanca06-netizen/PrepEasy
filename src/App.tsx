@@ -1304,10 +1304,10 @@ export default function App() {
                     <div className="bg-white rounded-3xl border border-neutral-100 p-3 space-y-2 divide-y divide-neutral-50 shadow-xs">
                       {ingredients.map((ing) => {
                         const priorityConfig = {
-                          usar_hoy:     { text: 'Usar hoy',       color: 'text-prepeasy-error', border: 'border-red-200',    emoji: '🔴' },
-                          usar_pronto:  { text: 'Usar pronto',    color: 'text-amber-600',       border: 'border-amber-200',  emoji: '🟠' },
-                          esta_semana:  { text: 'Esta semana',    color: 'text-yellow-600',      border: 'border-yellow-200', emoji: '🟡' },
-                          sin_prisa:    { text: 'Sin prisa',      color: 'text-stone-400',       border: 'border-neutral-100',emoji: '🟢' },
+                          usar_hoy:     { text: 'Usar hoy',    color: 'text-red-600',    border: 'border-red-200',    dot: 'bg-red-500' },
+                          usar_pronto:  { text: 'Usar pronto', color: 'text-orange-500', border: 'border-amber-200',  dot: 'bg-orange-400' },
+                          esta_semana:  { text: 'Esta semana', color: 'text-yellow-600', border: 'border-yellow-200', dot: 'bg-yellow-400' },
+                          sin_prisa:    { text: 'Sin prisa',   color: 'text-stone-400',  border: 'border-neutral-100',dot: 'bg-green-500' },
                         }[ing.priority ?? 'sin_prisa'];
 
                         return (
@@ -1326,8 +1326,9 @@ export default function App() {
                                 <div className="flex gap-1.5 items-center mt-0.5">
                                   <span className="text-xs text-stone-500 font-mono">{ing.quantity}</span>
                                   <span className="text-stone-300">•</span>
-                                  <span className={`text-xs font-bold flex items-center gap-1 ${priorityConfig.color}`}>
-                                    <span>{priorityConfig.emoji}</span>{priorityConfig.text}
+                                  <span className={`text-xs font-bold flex items-center gap-1.5 ${priorityConfig.color}`}>
+                                    <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${priorityConfig.dot}`} />
+                                    {priorityConfig.text}
                                   </span>
                                 </div>
                               </div>
