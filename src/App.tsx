@@ -277,7 +277,19 @@ export default function App() {
         !name.includes('aceite') &&
         !name.includes('agua')
       );
-      const shuffled = allRecipeIngredients.sort(() => Math.random() - 0.5).slice(0, 5);
+      // Clean up recipe ingredient names: remove qualifiers like "(opcional)", "o alternativa", etc.
+      const cleanScanName = (name: string) =>
+        name
+          .replace(/\s*\([^)]*\)/g, '')      // remove (opcional), (optional), etc.
+          .replace(/\s+o\s+\S.*$/i, '')       // remove "o buttermilk", "o chile verde"
+          .replace(/\s+y\s+\S.*$/i, '')       // remove "y cilantro", "y ajo"
+          .trim();
+
+      const shuffled = allRecipeIngredients
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 5)
+        .map(cleanScanName)
+        .filter(n => n.length > 2);
       const categoryMap: Record<string, Ingredient['category']> = {
         pollo: 'Carnes', pechuga: 'Carnes', carne: 'Carnes', costilla: 'Carnes', chorizo: 'Carnes', camarones: 'Carnes',
         papa: 'Verduras', tomate: 'Verduras', cebolla: 'Verduras', zanahoria: 'Verduras', aguacate: 'Verduras',
