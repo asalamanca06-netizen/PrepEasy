@@ -110,7 +110,12 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem('weeklyPlan') ?? 'null'); } catch { return null; }
   });
   const [plannerStatus, setPlannerStatus] = useState<PlannerStatus>(() => {
-    return localStorage.getItem('weeklyPlan') ? 'ready' : 'empty';
+    try {
+      const saved = localStorage.getItem('weeklyPlan');
+      if (!saved) return 'empty';
+      const parsed = JSON.parse(saved);
+      return parsed?.recipes?.length > 0 ? 'ready' : 'empty';
+    } catch { return 'empty'; }
   });
   const [showMissingIngredients, setShowMissingIngredients] = useState(false);
   const [plannerError, setPlannerError] = useState<string | null>(null);
@@ -145,6 +150,22 @@ export default function App() {
   const warnings = pantryIsEmpty ? [] : ingredients.filter(i => i.expirationDays <= 1);
 
   // Handle Kitchen countdown timer
+  // Restore planner state when switching to planificador tab
+  useEffect(() => {
+    if (activeTab === 'planificador') {
+      try {
+        const saved = localStorage.getItem('weeklyPlan');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.recipes?.length > 0) {
+            setWeeklyPlan(parsed);
+            setPlannerStatus('ready');
+          }
+        }
+      } catch { /* ignore */ }
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     if (isTimerRunning) {
       timerRef.current = setInterval(() => {
