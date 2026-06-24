@@ -472,6 +472,15 @@ export default function App() {
         picked.push(...extras.slice(0, 5 - picked.length));
       }
 
+      // Sort picked recipes by urgency: recipes using the soonest-expiring ingredient go first
+      const getUrgency = (r: typeof picked[0]) => {
+        const matches = ingredients.filter(i =>
+          i.expirationDays <= 7 && r.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
+        );
+        return matches.length > 0 ? Math.min(...matches.map(i => i.expirationDays)) : 999;
+      };
+      picked.sort((a, b) => getUrgency(a) - getUrgency(b));
+
       const planned: WeeklyPlan = {
         recipes: days.map((day, i) => {
           const r = picked[i];
