@@ -283,8 +283,19 @@ export default function App() {
     return match ? INGREDIENT_IMAGES[match] : CATEGORY_FALLBACK_IMAGES[ing.category];
   };
 
-  // Filtered recipes matching energy selection & pantry connection
-  const activeRecipes = recipes.filter(r => r.energyLevel === energyLevel);
+  // Filtered and sorted recipes: prioritize those that use the most expiring ingredients
+  const activeRecipes = recipes
+    .filter(r => r.energyLevel === energyLevel)
+    .map(recipe => {
+      const expiringMatches = pantryIsEmpty ? 0 : ingredients.filter(ing =>
+        ing.expirationDays <= 3 &&
+        recipe.ingredientsNeeded.some(n =>
+          n.name.toLowerCase().split(' ').some(w => w.length > 3 && ing.name.toLowerCase().includes(w))
+        )
+      ).length;
+      return { ...recipe, _expiringScore: expiringMatches };
+    })
+    .sort((a, b) => b._expiringScore - a._expiringScore);
 
   const generateWeeklyPlan = async () => {
     if (ingredients.length === 0) return;
