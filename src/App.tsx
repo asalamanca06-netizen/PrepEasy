@@ -101,9 +101,11 @@ export default function App() {
     });
   };
 
-  // AI recipe generation (for unmatched expiring ingredients)
+  // AI recipe generation (auto-triggered for unmatched expiring ingredients)
+  const [aiGeneratedRecipes, setAiGeneratedRecipes] = useState<Recipe[]>([]);
   const [isGeneratingAIRecipe, setIsGeneratingAIRecipe] = useState(false);
   const [aiRecipeError, setAiRecipeError] = useState<string | null>(null);
+  const generatedIngredientsRef = useRef<Set<string>>(new Set());
 
   // Planner states
   const [plannerMode, setPlannerMode] = useState<PlannerMode>(() => {
@@ -500,13 +502,26 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni explicaciones:
         }))
       };
 
-      setActiveCookingRecipe(newRecipe);
+      setAiGeneratedRecipes(prev => [newRecipe, ...prev.filter(r => r.id !== newRecipe.id)]);
     } catch (e) {
       setAiRecipeError(e instanceof Error ? e.message : 'Error al generar receta');
+      // Remove from generated set so it can retry
+      generatedIngredientsRef.current.delete(cleanIngredient(targetIngredient));
     } finally {
       setIsGeneratingAIRecipe(false);
     }
   };
+
+  // Auto-generate recipes for expiring ingredients with no static match
+  useEffect(() => {
+    if (!openrouterKey || isGeneratingAIRecipe || expiringWithNoRecipe.length === 0) return;
+    const ungenerated = expiringWithNoRecipe.find(
+      ing => !generatedIngredientsRef.current.has(cleanIngredient(ing.name))
+    );
+    if (!ungenerated) return;
+    generatedIngredientsRef.current.add(cleanIngredient(ungenerated.name));
+    generateAIRecipe(ungenerated.name);
+  }, [expiringWithNoRecipe.map(i => i.name).join(','), openrouterKey]);
 
   return (
     <div className="min-h-screen bg-[#F0F4EE] flex flex-col items-center justify-center font-sans overflow-hidden text-neutral-800 relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/90 via-[#F0F4EE] to-[#E2EBE0]">
@@ -1099,49 +1114,88 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni explicaciones:
                     );
                   })}
 
-                  {/* AI Recipe Card — shown when expiring ingredients have no matching static recipe */}
-                  {expiringWithNoRecipe.length > 0 && (
-                    <div
-                      onClick={() => !isGeneratingAIRecipe && generateAIRecipe(expiringWithNoRecipe[0].name)}
-                      className="w-72 bg-gradient-to-br from-[#1a5c2e] to-[#0d3d1e] rounded-3xl overflow-hidden flex-shrink-0 snap-center shadow-md hover:shadow-lg transition-all flex flex-col cursor-pointer border border-green-900/30"
-                    >
-                      {isGeneratingAIRecipe ? (
-                        <div className="flex flex-col items-center justify-center h-[340px] p-8 gap-4">
-                          <RefreshCw className="w-8 h-8 text-white animate-spin" />
-                          <p className="text-white text-sm font-bold text-center">Generando receta con IA...</p>
-                          <p className="text-white/60 text-xs text-center">Esto toma unos segundos</p>
+                  {/* Skeleton card while AI is generating */}
+                  {isGeneratingAIRecipe && (
+                    <div className="w-72 bg-white rounded-3xl overflow-hidden flex-shrink-0 snap-center shadow-xs border border-neutral-100 flex flex-col animate-pulse">
+                      <div className="h-44 bg-gradient-to-br from-stone-100 to-stone-200 relative flex items-center justify-center">
+                        <Sparkles className="w-8 h-8 text-stone-300 animate-spin" style={{ animationDuration: '2s' }} />
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div className="space-y-2">
+                          <div className="h-3 w-24 bg-stone-200 rounded-full" />
+                          <div className="h-5 w-4/5 bg-stone-200 rounded-full" />
+                          <div className="h-4 w-3/5 bg-stone-100 rounded-full" />
                         </div>
-                      ) : (
-                        <div className="p-6 flex flex-col justify-between h-[340px]">
-                          <div className="space-y-4">
-                            <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
-                              <Sparkles className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="space-y-2">
-                              <span className="text-[11px] font-bold text-white/60 uppercase tracking-wider">IA · Receta especial</span>
-                              <h3 className="font-serif text-xl font-bold text-white leading-snug">
-                                ¿Qué cocino con {expiringWithNoRecipe[0].name.split(' ')[0]}?
-                              </h3>
-                              <p className="text-sm text-white/75 leading-relaxed">
-                                Vence en {expiringWithNoRecipe[0].expirationDays} día{expiringWithNoRecipe[0].expirationDays !== 1 ? 's' : ''}. La IA crea una receta usando exactamente este ingrediente.
-                              </p>
-                              {expiringWithNoRecipe.length > 1 && (
-                                <p className="text-xs text-white/50">
-                                  +{expiringWithNoRecipe.length - 1} ingrediente{expiringWithNoRecipe.length > 2 ? 's' : ''} más sin receta
-                                </p>
-                              )}
-                              {aiRecipeError && (
-                                <p className="text-xs text-red-300 mt-1">{aiRecipeError}</p>
+                        <div className="flex gap-1.5">
+                          <div className="h-6 w-20 bg-stone-100 rounded-md" />
+                          <div className="h-6 w-16 bg-stone-100 rounded-md" />
+                        </div>
+                        <div className="h-11 w-full bg-stone-200 rounded-2xl mt-2" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI-generated recipe cards — appear automatically at the start */}
+                  {aiGeneratedRecipes.map((recipe) => {
+                    const visibleIngredients = recipe.ingredientsNeeded.slice(0, 2);
+                    const extraCount = recipe.ingredientsNeeded.length - 2;
+                    const ingredientEmojis: Record<string, string> = {
+                      espinaca: '🥬', aguacate: '🥑', tomate: '🍅', huevo: '🥚', pollo: '🍗',
+                      arroz: '🍚', salmon: '🐟', salmón: '🐟', pasta: '🍝', zanahoria: '🥕',
+                      cebolla: '🧅', ajo: '🧄', limón: '🍋', queso: '🧀', leche: '🥛',
+                      aceite: '🫙', sal: '🧂', mantequilla: '🧈', hongo: '🍄', calabacín: '🥒',
+                      champiñon: '🍄', pimiento: '🫑', lechuga: '🥬', pepino: '🥒', patata: '🥔',
+                      papa: '🥔', carne: '🥩', cerdo: '🥩', atun: '🐟', camaron: '🦐'
+                    };
+                    const getIngEmoji = (name: string) => {
+                      const key = Object.keys(ingredientEmojis).find(k => name.toLowerCase().includes(k));
+                      return key ? ingredientEmojis[key] : '🌿';
+                    };
+                    return (
+                      <div
+                        key={recipe.id}
+                        onClick={() => { setSelectedRecipe(recipe); setActiveCookingRecipe(recipe); }}
+                        className="w-72 bg-white rounded-3xl overflow-hidden border border-emerald-100 flex-shrink-0 snap-center shadow-sm hover:shadow-md transition-all flex flex-col justify-between cursor-pointer ring-1 ring-emerald-200/50"
+                      >
+                        <div className="relative">
+                          <img src={recipe.imageUrl} alt={recipe.title} className="w-full h-44 object-cover" />
+                          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-xs py-1 px-2.5 rounded-full text-xs font-bold text-stone-800 shadow-xs flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-prepeasy-primary" /> {recipe.prepTime} min
+                          </div>
+                          <div className="absolute top-3 left-3 bg-prepeasy-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" /> IA
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleFavorite(recipe.id); }}
+                            className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${favorites.includes(recipe.id) ? 'bg-white text-red-500' : 'bg-white/80 text-stone-400'}`}
+                          >
+                            <Heart className="w-4 h-4" fill={favorites.includes(recipe.id) ? 'currentColor' : 'none'} />
+                          </button>
+                        </div>
+                        <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                          <div className="space-y-2.5">
+                            <h3 className="font-serif text-lg font-bold text-prepeasy-text-primary leading-snug">{recipe.title}</h3>
+                            <div className="flex flex-wrap gap-1.5">
+                              {visibleIngredients.map((ing, i) => (
+                                <span key={i} className="text-xs font-medium py-0.5 px-2 rounded-md bg-[#EEF1ED] text-stone-600 border border-[#E2EBE0]">
+                                  {getIngEmoji(ing.name)} {ing.name}
+                                </span>
+                              ))}
+                              {extraCount > 0 && (
+                                <span className="text-xs font-medium py-0.5 px-2 rounded-md bg-[#EEF1ED] text-stone-500 border border-[#E2EBE0]">+{extraCount} más</span>
                               )}
                             </div>
                           </div>
-                          <button className="w-full bg-white text-[#1a5c2e] rounded-2xl py-3 px-4 text-sm font-bold flex items-center justify-center gap-2 mt-4 hover:bg-white/90 transition-all">
-                            <Sparkles className="w-4 h-4" /> Generar receta
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedRecipe(recipe); setActiveCookingRecipe(recipe); }}
+                            className="w-full bg-[#006b2d] hover:bg-prepeasy-primary-dark text-white rounded-2xl py-3 px-4 text-sm font-bold transition-all flex items-center justify-center shadow-xs"
+                          >
+                            Cocinar ahora
                           </button>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Revisar mi despensa CTA */}
