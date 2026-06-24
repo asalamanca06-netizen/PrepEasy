@@ -254,18 +254,45 @@ export default function App() {
     setActiveTab('favoritos');
   };
 
-  // Simulating the OCR receipt scan
+  // Simulating the OCR receipt scan — only adds ingredients that exist in recipes
   const handleReceiptScan = () => {
     setIsScanningReceipt(true);
     setTimeout(() => {
-      // Simulate ingredients scanned from Mercadona/Carrefour
-      const scanned: Ingredient[] = [
-        { id: 'scan_1', name: 'Salmón noruego fresco', category: 'Carnes', expirationDays: 2, quantity: '2 filetes' },
-        { id: 'scan_2', name: 'Brócoli rizado', category: 'Verduras', expirationDays: 3, quantity: '1 ud' },
-        { id: 'scan_3', name: 'Limones de huerta', category: 'Verduras', expirationDays: 14, quantity: '4 uds' },
-        { id: 'scan_4', name: 'Salsa de soja baja en sal', category: 'Condimentos', expirationDays: 120, quantity: '250ml' },
-        { id: 'scan_5', name: 'Queso feta griego', category: 'Lácteos', expirationDays: 8, quantity: '200g' }
-      ];
+      // Pick 5 random ingredients from ALL_RECIPES that aren't already in the pantry
+      const allRecipeIngredients = Array.from(
+        new Set(ALL_RECIPES.flatMap(r => r.ingredientsNeeded.map(n => n.name)))
+      ).filter(name =>
+        !ingredients.some(i => ingredientMatches(i.name, name)) &&
+        name.length > 3 &&
+        !name.includes('sal') &&
+        !name.includes('aceite') &&
+        !name.includes('agua')
+      );
+      const shuffled = allRecipeIngredients.sort(() => Math.random() - 0.5).slice(0, 5);
+      const categoryMap: Record<string, Ingredient['category']> = {
+        pollo: 'Carnes', pechuga: 'Carnes', carne: 'Carnes', costilla: 'Carnes', chorizo: 'Carnes', camarones: 'Carnes',
+        papa: 'Verduras', tomate: 'Verduras', cebolla: 'Verduras', zanahoria: 'Verduras', aguacate: 'Verduras',
+        yuca: 'Verduras', plátano: 'Verduras', mazorca: 'Verduras', lechuga: 'Verduras', pepino: 'Verduras',
+        queso: 'Lácteos', leche: 'Lácteos', crema: 'Lácteos', suero: 'Lácteos',
+        arroz: 'Granos', harina: 'Granos', pasta: 'Granos', arepa: 'Granos',
+      };
+      const getCategory = (name: string): Ingredient['category'] => {
+        const key = Object.keys(categoryMap).find(k => name.toLowerCase().includes(k));
+        return key ? categoryMap[key] : 'Otros';
+      };
+      const expiryMap: Record<string, number> = {
+        Carnes: 3, Verduras: 5, Lácteos: 7, Granos: 30, Condimentos: 90, Otros: 10
+      };
+      const scanned: Ingredient[] = shuffled.map((name, i) => {
+        const category = getCategory(name);
+        return {
+          id: `scan_${Date.now()}_${i}`,
+          name,
+          category,
+          expirationDays: expiryMap[category] ?? 7,
+          quantity: category === 'Carnes' ? '300g' : category === 'Granos' ? '500g' : '1 ud'
+        };
+      });
       saveIngredients([...scanned, ...ingredients]);
       setPantryIsEmpty(false);
       setIsScanningReceipt(false);
