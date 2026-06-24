@@ -472,31 +472,17 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni explicaciones:
       if (!jsonMatch) throw new Error('Respuesta inválida');
       const parsed = JSON.parse(jsonMatch[0]);
 
-      // Pick a food image based on ingredient
-      const photoMap: Record<string, string> = {
-        zanahoria: '1490645935-991f2537a31c',
-        champiñon: '1504674900247-0877df9cc836', hongo: '1504674900247-0877df9cc836',
-        cebolla: '1518977676405-bdb2a03a81f6',
-        pimiento: '1506084868230-bb16ba1a3673',
-        brocoli: '1553546895-531fd7f6e2ab', brócoli: '1553546895-531fd7f6e2ab',
-        espinaca: '1576045057995-568f588f82fb',
-        tomate: '1561136236-04e02c0a0e7b',
-        pollo: '1567620905-87b43b2fbb4f',
-        salmon: '1467003909585-2f8a72700288',
-        arroz: '1516684669134-c04cfa9c73a3',
-        pasta: '1551183053-bf91798d9944',
-        huevo: '1490818387583-1d37ac769a55',
-        papa: '1494059980473-813e73ee784b', patata: '1494059980473-813e73ee784b',
-        lentejas: '1547592180-85f173990554',
-        carne: '1558030006-b6eeb4a01f29',
-        cerdo: '1558030006-b6eeb4a01f29',
-        atun: '1467003909585-2f8a72700288', atún: '1467003909585-2f8a72700288',
-        lechuga: '1512621776-6d1070758-bc91-4201-8a60-1476a1d5c41c'
-      };
+      // Derive image automatically from INGREDIENT_IMAGES (same photo scaled to 600px)
       const cleanedName = cleanIngredient(targetIngredient);
-      const photoKey = Object.keys(photoMap).find(k => cleanedName.includes(cleanIngredient(k)));
-      const fallbackPhotos = ['1547592180-85f173990554', '1567620832-b12a6e7ac2ed', '1490645935-991f2537a31c'];
-      const photoId = photoKey ? photoMap[photoKey] : fallbackPhotos[targetIngredient.charCodeAt(0) % fallbackPhotos.length];
+      const imgKey = Object.keys(INGREDIENT_IMAGES).find(k => cleanedName.includes(cleanIngredient(k)));
+      const fallbackUrls = [
+        'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1490645935-991f2537a31c?auto=format&fit=crop&q=80&w=600',
+        'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&q=80&w=600',
+      ];
+      const imageUrl = imgKey
+        ? INGREDIENT_IMAGES[imgKey].replace('w=120', 'w=600')
+        : fallbackUrls[targetIngredient.charCodeAt(0) % fallbackUrls.length];
 
       const newRecipe: Recipe = {
         id: `ai_${Date.now()}`,
@@ -504,7 +490,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni explicaciones:
         description: parsed.description ?? `Deliciosa receta usando ${targetIngredient} de tu despensa.`,
         prepTime: parsed.prepTime ?? 20,
         energyLevel: energyLevel,
-        imageUrl: `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&q=80&w=600`,
+        imageUrl,
         utensils: parsed.utensils ?? ['sartén'],
         steps: parsed.steps ?? ['Prepara los ingredientes.', 'Cocina a fuego medio.', 'Sirve y disfruta.'],
         ingredientsNeeded: (parsed.ingredientsNeeded ?? [{ name: targetIngredient, required: true }]).map((ing: any) => ({
