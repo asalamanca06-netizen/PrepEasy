@@ -101,6 +101,10 @@ export default function App() {
     });
   };
 
+  // AI recipe generation (for unmatched expiring ingredients)
+  const [isGeneratingAIRecipe, setIsGeneratingAIRecipe] = useState(false);
+  const [aiRecipeError, setAiRecipeError] = useState<string | null>(null);
+
   // Planner states
   const [plannerMode, setPlannerMode] = useState<PlannerMode>(() => {
     return (localStorage.getItem('plannerMode') as PlannerMode) ?? 'rapido';
@@ -317,6 +321,14 @@ export default function App() {
     }))
   }));
 
+  // Expiring ingredients that have no matching recipe in the static catalog
+  const expiringWithNoRecipe = pantryIsEmpty ? [] : ingredients.filter(ing =>
+    ing.expirationDays <= 5 &&
+    !recipesWithPantryStatus.some(r =>
+      r.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name))
+    )
+  );
+
   // Filtered and sorted recipes: prioritize those that use the most expiring ingredients
   const activeRecipes = recipesWithPantryStatus
     .filter(r => r.energyLevel === energyLevel)
@@ -403,6 +415,110 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
       console.error('Planner error:', e);
       setPlannerStatus('error');
       setPlannerError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const generateAIRecipe = async (targetIngredient: string) => {
+    if (!openrouterKey) {
+      setActiveTab('planificador');
+      return;
+    }
+    setIsGeneratingAIRecipe(true);
+    setAiRecipeError(null);
+
+    const allIngredients = ingredients.filter(i => !pantryIsEmpty);
+    const pantryList = allIngredients.map(i => i.name).join(', ');
+    const modeLabel = energyLevel === 'low' ? 'rápida (máx 20 min)' : energyLevel === 'balanced' ? 'normal (20-35 min)' : 'elaborada (40+ min)';
+
+    const prompt = `Eres un chef experto. Crea UNA receta de cena ${modeLabel} que use "${targetIngredient}" como ingrediente principal.
+Otros ingredientes disponibles en la despensa: ${pantryList}.
+
+Responde ÚNICAMENTE con JSON válido, sin markdown ni explicaciones:
+{
+  "title": "nombre de la receta",
+  "description": "descripción breve de 1 oración",
+  "prepTime": 20,
+  "utensils": ["sartén"],
+  "steps": ["paso 1 detallado", "paso 2", "paso 3", "paso 4"],
+  "ingredientsNeeded": [
+    {"name": "nombre del ingrediente", "required": true}
+  ]
+}`;
+
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openrouterKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://prepeasy.app',
+          'X-Title': 'PrepEasy'
+        },
+        body: JSON.stringify({
+          model: 'nvidia/nemotron-3-nano-30b-a3b:free',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err?.error?.message ?? `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const text: string = data.choices?.[0]?.message?.content ?? '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Respuesta inválida');
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      // Pick a food image based on ingredient
+      const photoMap: Record<string, string> = {
+        zanahoria: '1490645935-991f2537a31c',
+        champiñon: '1504674900247-0877df9cc836', hongo: '1504674900247-0877df9cc836',
+        cebolla: '1518977676405-bdb2a03a81f6',
+        pimiento: '1506084868230-bb16ba1a3673',
+        brocoli: '1553546895-531fd7f6e2ab', brócoli: '1553546895-531fd7f6e2ab',
+        espinaca: '1576045057995-568f588f82fb',
+        tomate: '1561136236-04e02c0a0e7b',
+        pollo: '1567620905-87b43b2fbb4f',
+        salmon: '1467003909585-2f8a72700288',
+        arroz: '1516684669134-c04cfa9c73a3',
+        pasta: '1551183053-bf91798d9944',
+        huevo: '1490818387583-1d37ac769a55',
+        papa: '1494059980473-813e73ee784b', patata: '1494059980473-813e73ee784b',
+        lentejas: '1547592180-85f173990554',
+        carne: '1558030006-b6eeb4a01f29',
+        cerdo: '1558030006-b6eeb4a01f29',
+        atun: '1467003909585-2f8a72700288', atún: '1467003909585-2f8a72700288',
+        lechuga: '1512621776-6d1070758-bc91-4201-8a60-1476a1d5c41c'
+      };
+      const cleanedName = cleanIngredient(targetIngredient);
+      const photoKey = Object.keys(photoMap).find(k => cleanedName.includes(cleanIngredient(k)));
+      const fallbackPhotos = ['1547592180-85f173990554', '1567620832-b12a6e7ac2ed', '1490645935-991f2537a31c'];
+      const photoId = photoKey ? photoMap[photoKey] : fallbackPhotos[targetIngredient.charCodeAt(0) % fallbackPhotos.length];
+
+      const newRecipe: Recipe = {
+        id: `ai_${Date.now()}`,
+        title: parsed.title ?? `Receta con ${targetIngredient}`,
+        description: parsed.description ?? `Deliciosa receta usando ${targetIngredient} de tu despensa.`,
+        prepTime: parsed.prepTime ?? 20,
+        energyLevel: energyLevel,
+        imageUrl: `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&q=80&w=600`,
+        utensils: parsed.utensils ?? ['sartén'],
+        steps: parsed.steps ?? ['Prepara los ingredientes.', 'Cocina a fuego medio.', 'Sirve y disfruta.'],
+        ingredientsNeeded: (parsed.ingredientsNeeded ?? [{ name: targetIngredient, required: true }]).map((ing: any) => ({
+          name: ing.name,
+          required: ing.required ?? true,
+          inPantry: ingredients.some(pi => ingredientMatches(pi.name, ing.name))
+        }))
+      };
+
+      setActiveCookingRecipe(newRecipe);
+    } catch (e) {
+      setAiRecipeError(e instanceof Error ? e.message : 'Error al generar receta');
+    } finally {
+      setIsGeneratingAIRecipe(false);
     }
   };
 
@@ -996,6 +1112,50 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                       </div>
                     );
                   })}
+
+                  {/* AI Recipe Card — shown when expiring ingredients have no matching static recipe */}
+                  {expiringWithNoRecipe.length > 0 && (
+                    <div
+                      onClick={() => !isGeneratingAIRecipe && generateAIRecipe(expiringWithNoRecipe[0].name)}
+                      className="w-72 bg-gradient-to-br from-[#1a5c2e] to-[#0d3d1e] rounded-3xl overflow-hidden flex-shrink-0 snap-center shadow-md hover:shadow-lg transition-all flex flex-col cursor-pointer border border-green-900/30"
+                    >
+                      {isGeneratingAIRecipe ? (
+                        <div className="flex flex-col items-center justify-center h-[340px] p-8 gap-4">
+                          <RefreshCw className="w-8 h-8 text-white animate-spin" />
+                          <p className="text-white text-sm font-bold text-center">Generando receta con IA...</p>
+                          <p className="text-white/60 text-xs text-center">Esto toma unos segundos</p>
+                        </div>
+                      ) : (
+                        <div className="p-6 flex flex-col justify-between h-[340px]">
+                          <div className="space-y-4">
+                            <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
+                              <Sparkles className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                              <span className="text-[11px] font-bold text-white/60 uppercase tracking-wider">IA · Receta especial</span>
+                              <h3 className="font-serif text-xl font-bold text-white leading-snug">
+                                ¿Qué cocino con {expiringWithNoRecipe[0].name.split(' ')[0]}?
+                              </h3>
+                              <p className="text-sm text-white/75 leading-relaxed">
+                                Vence en {expiringWithNoRecipe[0].expirationDays} día{expiringWithNoRecipe[0].expirationDays !== 1 ? 's' : ''}. La IA crea una receta usando exactamente este ingrediente.
+                              </p>
+                              {expiringWithNoRecipe.length > 1 && (
+                                <p className="text-xs text-white/50">
+                                  +{expiringWithNoRecipe.length - 1} ingrediente{expiringWithNoRecipe.length > 2 ? 's' : ''} más sin receta
+                                </p>
+                              )}
+                              {aiRecipeError && (
+                                <p className="text-xs text-red-300 mt-1">{aiRecipeError}</p>
+                              )}
+                            </div>
+                          </div>
+                          <button className="w-full bg-white text-[#1a5c2e] rounded-2xl py-3 px-4 text-sm font-bold flex items-center justify-center gap-2 mt-4 hover:bg-white/90 transition-all">
+                            <Sparkles className="w-4 h-4" /> Generar receta
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Revisar mi despensa CTA */}
