@@ -918,8 +918,8 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
 
                             {/* Expiring tag — solo si hay ingredientes por vencer */}
                             {index === 0 && expiringCount > 0 && !pantryIsEmpty && (
-                              <span className="inline-flex items-center gap-1 text-xs font-bold py-0.5 px-2 rounded-md bg-amber-50 border border-amber-200 text-amber-700">
-                                🟠 Aprovecha {expiringCount} ingrediente{expiringCount > 1 ? 's' : ''} por vencer
+                              <span className="inline-flex items-center text-xs font-bold text-amber-700">
+                                Aprovecha {expiringCount} ingrediente{expiringCount > 1 ? 's' : ''} por vencer
                               </span>
                             )}
 
