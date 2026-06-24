@@ -215,8 +215,9 @@ export default function App() {
     const hasStaticRecipe = ALL_RECIPES.some(r =>
       r.ingredientsNeeded.some(n => ingredientMatches(newIng.name, n.name))
     );
-    const key = localStorage.getItem('openrouter_api_key') ?? import.meta.env.VITE_OPENROUTER_API_KEY ?? '';
-    if (!hasStaticRecipe && newIngExpiry <= 7 && key && !generatedIngredientsRef.current.has(cleanIngredient(newIng.name))) {
+    // Always auto-generate for expiring ingredients with no static recipe
+    // Uses OpenRouter if key available, falls back to Pollinations.ai (no auth needed)
+    if (!hasStaticRecipe && newIngExpiry <= 7 && !generatedIngredientsRef.current.has(cleanIngredient(newIng.name))) {
       generatedIngredientsRef.current.add(cleanIngredient(newIng.name));
       setActiveTab('inicio');
       generateAIRecipe(newIng.name);
@@ -435,10 +436,6 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
   };
 
   const generateAIRecipe = async (targetIngredient: string) => {
-    if (!openrouterKey) {
-      setActiveTab('planificador');
-      return;
-    }
     setIsGeneratingAIRecipe(true);
     setAiRecipeError(null);
 
@@ -447,43 +444,50 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
     const modeLabel = energyLevel === 'low' ? 'rápida (máx 20 min)' : energyLevel === 'balanced' ? 'normal (20-35 min)' : 'elaborada (40+ min)';
 
     const prompt = `Eres un chef experto. Crea UNA receta de cena ${modeLabel} que use "${targetIngredient}" como ingrediente principal.
-Otros ingredientes disponibles en la despensa: ${pantryList}.
+Otros ingredientes disponibles: ${pantryList}.
+Responde ÚNICAMENTE con JSON válido, sin markdown:
+{"title":"nombre","description":"1 oración","prepTime":20,"utensils":["sartén"],"steps":["paso 1","paso 2","paso 3","paso 4"],"ingredientsNeeded":[{"name":"ingrediente","required":true}]}`;
 
-Responde ÚNICAMENTE con JSON válido, sin markdown ni explicaciones:
-{
-  "title": "nombre de la receta",
-  "description": "descripción breve de 1 oración",
-  "prepTime": 20,
-  "utensils": ["sartén"],
-  "steps": ["paso 1 detallado", "paso 2", "paso 3", "paso 4"],
-  "ingredientsNeeded": [
-    {"name": "nombre del ingrediente", "required": true}
-  ]
-}`;
-
-    try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openrouterKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://prepeasy.app',
-          'X-Title': 'PrepEasy'
-        },
-        body: JSON.stringify({
-          model: 'nvidia/nemotron-3-nano-30b-a3b:free',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7
-        })
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err?.error?.message ?? `HTTP ${res.status}`);
+    const callLLM = async (): Promise<string> => {
+      // Prefer OpenRouter if key is available
+      if (openrouterKey) {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openrouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://prepeasy.app',
+            'X-Title': 'PrepEasy'
+          },
+          body: JSON.stringify({
+            model: 'nvidia/nemotron-3-nano-30b-a3b:free',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7
+          })
+        });
+        if (!res.ok) throw new Error(`OpenRouter HTTP ${res.status}`);
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content ?? '';
       }
 
+      // Fallback: Pollinations.ai — free, no auth required
+      const res = await fetch('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'openai',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          jsonMode: true
+        })
+      });
+      if (!res.ok) throw new Error(`Pollinations HTTP ${res.status}`);
       const data = await res.json();
-      const text: string = data.choices?.[0]?.message?.content ?? '';
+      return data.choices?.[0]?.message?.content ?? '';
+    };
+
+    try {
+      const text = await callLLM();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('Respuesta inválida');
       const parsed = JSON.parse(jsonMatch[0]);
