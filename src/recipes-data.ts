@@ -1,52 +1,36 @@
 import { Recipe } from './types';
 
-// Verified Unsplash photo IDs grouped by food category
+// Photo IDs confirmed working from original app data
+// Each ID maps to the dominant ingredient category shown in the recipe title
+const IMG = {
+  arroz1:    '1516684669134-c04cfa9c73a3', // rice dish
+  arroz2:    '1574484284602-bde93e9c7d2f', // rice pudding
+  arroz3:    '1536304993881-ff86e0c9f31d', // plain white rice
+  sopa:      '1547592180-85f173990554',    // soup/stew bowl
+  papa:      '1590165482129-1b8b27698780', // potatoes
+  platano:   '1574484284602-bde93e9c7d2f', // warm yellow food (used for plantain)
+  pollo:     '1567620832903-9fc6debc209f', // roasted chicken
+  carne:     '1546964124-0cce460a9531',    // beef steak
+  pasta:     '1551183053-bf91798d7149',    // pasta
+  huevo:     '1525351484163-7529414344d8', // eggs
+  ensalada:  '1512621776951-a57141f2eefd', // salad
+  verduras:  '1540420773420-3366772f4999', // vegetables
+  generico:  '1504674900247-0877df9cc836', // colorful food spread (fallback)
+};
+
 const RECIPE_IMAGES: [string[], string][] = [
-  // Juices
-  [['jugo', 'limonada', 'bebida', 'chicha'], '1547592180-85f173990554'],
-  // Rice
-  [['arroz con leche'], '1574484284602-bde93e9c7d2f'],
-  [['arroz con coco', 'arroz atollado', 'arroz amarillo'], '1516684669134-c04cfa9c73a3'],
-  [['arroz frito', 'arroz chino'], '1516684669134-c04cfa9c73a3'],
-  [['arroz'], '1536304993881-ff86e0c9f31d'],
-  // Soups
-  [['ajiaco', 'sancocho', 'sopa', 'caldo', 'crema de', 'minestrone'], '1547592180-85f173990554'],
-  // Potatoes
-  [['papas fritas', 'papas a la francesa'], '1568901346375-23c9450c58cd'],
-  [['puré', 'pure'], '1574926054530-4f7e1a5a0d5a'],
-  [['papa', 'papas'], '1590165482129-1b8b27698780'],
-  // Plantain
-  [['patacones', 'pataconas', 'tostones'], '1590301157890-4d0a40cbc11c'],
-  [['plátano', 'platano', 'tajadas', 'cayeye', 'maduro'], '1528735602780-2552fd46c7af'],
-  // Chicken
-  [['pollo asado', 'pollo al horno', 'pollo a la brasa'], '1598103442097-8b74394b95c8'],
-  [['pechuga', 'pollo a la plancha'], '1604503468506-a8da13d11d36'],
-  [['pollo', 'gallina'], '1567620832903-9fc6debc209f'],
-  // Beef
-  [['bistec', 'bisteck', 'carne asada'], '1546964124-0cce460a9531'],
-  [['bandeja paisa'], '1546069901-ba9599a7e63c'],
-  [['carne', 'res', 'estofado', 'guiso'], '1546964124-0cce460a9531'],
-  // Pork
-  [['chicharrón', 'chicharron', 'cerdo', 'lechona', 'pernil', 'chorizo', 'longaniza'], '1544025162-d76694265947'],
-  // Pasta
-  [['pasta', 'espagueti', 'tallarines', 'fettuccine', 'penne', 'lasaña'], '1551183053-bf91798d7149'],
-  // Eggs
-  [['huevo', 'huevos', 'tortilla', 'omelette'], '1525351484163-7529414344d8'],
-  // Cheese / dairy
-  [['queso', 'quesadilla', 'gratinado'], '1552767059-ce182ead6c1b'],
-  // Carrot
-  [['zanahoria'], '1447175008436-054170c2e979'],
-  // Spinach
-  [['espinaca'], '1576045057995-568f588f82fb'],
-  // Mushroom
-  [['champiñón', 'champiñones', 'hongos', 'setas'], '1504674900247-0877df9cc836'],
-  // Bread / arepas
-  [['arepa'], '1599785209707-a456fc1337bb'],
-  [['pan', 'pandebono', 'almojábana', 'tostada', 'sándwich', 'sandwich'], '1509440159596-0249088772ff'],
-  // Salad / vegetables
-  [['ensalada'], '1512621776951-a57141f2eefd'],
-  [['frijoles', 'lentejas', 'garbanzos', 'cazuela'], '1547592180-85f173990554'],
-  [['verduras', 'vegetales', 'stir-fry'], '1540420773420-3366772f4999'],
+  [['arroz con leche', 'arroz tres leche'], IMG.arroz2],
+  [['arroz con coco', 'arroz atollado', 'arroz amarillo', 'arroz chino', 'arroz frito', 'arroz con plátano', 'arroz con guandú'], IMG.arroz1],
+  [['arroz'], IMG.arroz3],
+  [['ajiaco', 'sancocho', 'sopa', 'caldo', 'crema de', 'minestrone', 'jugo', 'limonada', 'chicha', 'bebida'], IMG.sopa],
+  [['papa', 'papas', 'puré', 'pure', 'ajiaco'], IMG.papa],
+  [['plátano', 'platano', 'patacones', 'pataconas', 'tajadas', 'cayeye', 'maduro', 'tostones'], IMG.platano],
+  [['pollo', 'gallina', 'pechuga'], IMG.pollo],
+  [['carne', 'res', 'bistec', 'bisteck', 'cerdo', 'lechona', 'chicharrón', 'chicharron', 'chorizo', 'longaniza', 'bandeja', 'estofado'], IMG.carne],
+  [['pasta', 'espagueti', 'tallarines', 'fettuccine', 'penne', 'lasaña'], IMG.pasta],
+  [['huevo', 'huevos', 'tortilla', 'omelette'], IMG.huevo],
+  [['ensalada'], IMG.ensalada],
+  [['verduras', 'vegetales', 'stir-fry', 'espinaca', 'zanahoria', 'champiñón', 'champiñones', 'hongos', 'frijoles', 'lentejas'], IMG.verduras],
 ];
 
 function getRecipeImage(title: string): string {
