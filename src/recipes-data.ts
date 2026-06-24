@@ -1,6 +1,89 @@
 import { Recipe } from './types';
 
-export const ALL_RECIPES: Recipe[] = [
+const RECIPE_IMAGES: [string[], string][] = [
+  // Juices / drinks
+  [['jugo de zanahoria'], 'photo-1610970881699-44a5587cabec'],
+  [['jugo', 'jugo de'], 'photo-1610970881699-44a5587cabec'],
+  [['limonada'], 'photo-1556679343-c7306c1976bc'],
+  [['chicha', 'bebida'], 'photo-1544145945-f90425340c7e'],
+  // Rice dishes
+  [['arroz con leche'], 'photo-1574484284602-bde93e9c7d2f'],
+  [['arroz con coco'], 'photo-1516684669134-c04cfa9c73a3'],
+  [['arroz atollado'], 'photo-1574484284602-bde93e9c7d2f'],
+  [['arroz frito', 'arroz chino'], 'photo-1603133872878-684f208fb84b'],
+  [['arroz con camarón', 'arroz con camarones'], 'photo-1534422298391-e4f8c172dddb'],
+  [['arroz', 'caldo de arroz'], 'photo-1536304993881-ff86e0c9f31d'],
+  // Soups / stews
+  [['ajiaco'], 'photo-1547592180-85f173990554'],
+  [['sancocho'], 'photo-1547592180-85f173990554'],
+  [['sopa', 'caldo'], 'photo-1547592180-85f173990554'],
+  // Potatoes
+  [['papa criolla', 'papas criollas'], 'photo-1518977676405-bdb2a03a81f6'],
+  [['papas fritas', 'papas a la francesa'], 'photo-1573080496219-bb964426ef18'],
+  [['puré', 'pure'], 'photo-1574926054530-4f7e1a5a0d5a'],
+  [['papas al horno', 'papas horneadas'], 'photo-1593560708920-61dd98c46a4e'],
+  [['papas rellenas'], 'photo-1565299507177-b0ac66763828'],
+  [['papa', 'papas'], 'photo-1518977676405-bdb2a03a81f6'],
+  // Plantain
+  [['patacones', 'pataconas', 'tostones'], 'photo-1528735602780-2552fd46c7af'],
+  [['plátano maduro', 'tajadas', 'maduros fritos'], 'photo-1571019613454-1cb2f99b2d8b'],
+  [['plátano', 'platano'], 'photo-1571019613454-1cb2f99b2d8b'],
+  // Chicken
+  [['pollo asado', 'pollo al horno'], 'photo-1598103442097-8b74394b95c8'],
+  [['pechuga', 'pollo a la plancha'], 'photo-1604503468506-a8da13d11d36'],
+  [['pollo', 'gallina'], 'photo-1567620832903-9fc6debc209f'],
+  // Beef
+  [['bistec', 'bisteck'], 'photo-1546964124-0cce460a9531'],
+  [['carne asada', 'carne a la brasa'], 'photo-1546964124-0cce460a9531'],
+  [['bandeja paisa'], 'photo-1574484284602-bde93e9c7d2f'],
+  [['estofado', 'guiso de carne'], 'photo-1547592180-85f173990554'],
+  [['carne molida', 'picadillo'], 'photo-1565299507177-b0ac66763828'],
+  [['carne', 'res'], 'photo-1546964124-0cce460a9531'],
+  // Pork
+  [['chicharrón', 'chicharron'], 'photo-1544025162-d76694265947'],
+  [['cerdo', 'lechona', 'pernil'], 'photo-1544025162-d76694265947'],
+  [['chorizo', 'longaniza'], 'photo-1565299585323-38d6b0865b47'],
+  // Pasta
+  [['espagueti', 'espaguetis', 'spaghetti'], 'photo-1551183053-bf91798d7149'],
+  [['lasaña', 'lasagna'], 'photo-1574894709920-11b28e7367e3'],
+  [['pasta', 'tallarines', 'fettuccine', 'penne'], 'photo-1473093295043-cdd812d0e601'],
+  // Eggs
+  [['huevos revueltos', 'huevos pericos'], 'photo-1525351484163-7529414344d8'],
+  [['tortilla', 'omelette'], 'photo-1490645935967-10de6ba17061'],
+  [['huevos fritos', 'huevo frito'], 'photo-1510693206972-df098062cb71'],
+  [['huevos'], 'photo-1506976785307-8732e854ad03'],
+  // Cheese
+  [['quesadilla'], 'photo-1618509984105-0e02fbf6f15f'],
+  [['queso'], 'photo-1552767059-ce182ead6c1b'],
+  // Carrot
+  [['sopa de zanahoria', 'crema de zanahoria'], 'photo-1547592180-85f173990554'],
+  [['zanahoria'], 'photo-1447175008436-054170c2e979'],
+  // Spinach
+  [['espinaca', 'espinacas'], 'photo-1576045057995-568f588f82fb'],
+  // Mushroom
+  [['champiñón', 'champiñones', 'hongos', 'setas'], 'photo-1504674900247-0877df9cc836'],
+  // Bread
+  [['arepa'], 'photo-1599785209707-a456fc1337bb'],
+  [['pandebono', 'pan de bono'], 'photo-1509365465985-25d11c17e812'],
+  [['almojábana'], 'photo-1555507036-ab1f4038808a'],
+  [['pan', 'sándwich', 'sandwich', 'tostada'], 'photo-1509440159596-0249088772ff'],
+  // Mixed / vegetables
+  [['ensalada'], 'photo-1512621776951-a57141f2eefd'],
+  [['verduras', 'vegetales'], 'photo-1540420773420-3366772f4999'],
+  [['cazuela', 'frijoles', 'lentejas'], 'photo-1547592180-85f173990554'],
+];
+
+function getRecipeImage(title: string): string {
+  const t = title.toLowerCase();
+  for (const [keywords, photoId] of RECIPE_IMAGES) {
+    if (keywords.some(k => t.includes(k))) {
+      return `https://images.unsplash.com/${photoId}?auto=format&fit=crop&q=80&w=600`;
+    }
+  }
+  return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600';
+}
+
+const _RECIPES: Recipe[] = [
   // ARROZ (25)
   {
     id: 'r_arroz_01',
@@ -6688,3 +6771,5 @@ export const ALL_RECIPES: Recipe[] = [
   },
 
 ];
+
+export const ALL_RECIPES: Recipe[] = _RECIPES.map(r => ({ ...r, imageUrl: getRecipeImage(r.title) }));
