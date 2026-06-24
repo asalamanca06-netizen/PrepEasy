@@ -104,6 +104,11 @@ export default function App() {
   });
   const [showMissingIngredients, setShowMissingIngredients] = useState(false);
   const [plannerError, setPlannerError] = useState<string | null>(null);
+  const [openrouterKey, setOpenrouterKey] = useState<string>(() =>
+    localStorage.getItem('openrouter_api_key') ?? import.meta.env.VITE_OPENROUTER_API_KEY ?? ''
+  );
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [keyDraft, setKeyDraft] = useState('');
 
   // Cooking step tracking
   const [activeCookingRecipe, setActiveCookingRecipe] = useState<Recipe | null>(null);
@@ -317,7 +322,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
 }`;
 
     try {
-      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+      const apiKey = openrouterKey;
       if (!apiKey) throw new Error('Missing VITE_OPENROUTER_API_KEY');
 
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -1191,7 +1196,30 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                           : 'Genera tu plan de cenas personalizado con lo que tienes en casa.'}
                       </p>
                     </div>
-                    {ingredients.length > 0 && (
+                    {ingredients.length > 0 && !openrouterKey && (
+                      <div className="w-full space-y-3 text-left">
+                        <p className="text-xs text-stone-500 text-center">Ingresa tu clave de <span className="font-semibold">OpenRouter</span> para activar la IA.</p>
+                        <input
+                          type="password"
+                          value={keyDraft}
+                          onChange={e => setKeyDraft(e.target.value)}
+                          placeholder="sk-or-v1-..."
+                          className="w-full text-sm border border-stone-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-prepeasy-primary bg-white"
+                        />
+                        <button
+                          onClick={() => {
+                            if (!keyDraft.trim()) return;
+                            localStorage.setItem('openrouter_api_key', keyDraft.trim());
+                            setOpenrouterKey(keyDraft.trim());
+                            setKeyDraft('');
+                          }}
+                          className="bg-prepeasy-primary text-white font-bold text-sm py-3 px-6 rounded-xl w-full transition-all active:scale-95"
+                        >
+                          Guardar clave
+                        </button>
+                      </div>
+                    )}
+                    {ingredients.length > 0 && openrouterKey && (
                       <button
                         onClick={generateWeeklyPlan}
                         className="bg-prepeasy-primary text-white font-bold text-sm py-3 px-6 rounded-xl w-full transition-all active:scale-95"
@@ -1230,17 +1258,55 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                     <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
                       <UtensilsCrossed className="w-8 h-8 text-red-400" />
                     </div>
-                    <div className="space-y-1">
-                      <h2 className="font-serif text-xl font-bold text-prepeasy-text-primary">Algo salió mal</h2>
-                      <p className="text-xs text-stone-500">No pudimos generar tu plan. Revisa tu conexión e intenta de nuevo.</p>
-                      {plannerError && <p className="text-xs text-red-400 font-mono break-all mt-1">{plannerError}</p>}
-                    </div>
-                    <button
-                      onClick={generateWeeklyPlan}
-                      className="bg-prepeasy-primary text-white font-bold text-sm py-3 px-6 rounded-xl w-full flex items-center justify-center gap-2 transition-all active:scale-95"
-                    >
-                      <RefreshCw className="w-4 h-4" /> Reintentar
-                    </button>
+                    {!openrouterKey || showKeyInput ? (
+                      <div className="w-full space-y-3 text-left">
+                        <div className="space-y-1">
+                          <h2 className="font-serif text-xl font-bold text-prepeasy-text-primary text-center">Configura la IA</h2>
+                          <p className="text-xs text-stone-500 text-center">Ingresa tu clave de <span className="font-semibold">OpenRouter</span> para activar el planificador.</p>
+                        </div>
+                        <input
+                          type="password"
+                          value={keyDraft}
+                          onChange={e => setKeyDraft(e.target.value)}
+                          placeholder="sk-or-v1-..."
+                          className="w-full text-sm border border-stone-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-prepeasy-primary bg-white"
+                        />
+                        <button
+                          onClick={() => {
+                            if (!keyDraft.trim()) return;
+                            localStorage.setItem('openrouter_api_key', keyDraft.trim());
+                            setOpenrouterKey(keyDraft.trim());
+                            setShowKeyInput(false);
+                            setKeyDraft('');
+                            setPlannerStatus('empty');
+                            setPlannerError(null);
+                          }}
+                          className="bg-prepeasy-primary text-white font-bold text-sm py-3 px-6 rounded-xl w-full transition-all active:scale-95"
+                        >
+                          Guardar y continuar
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-full space-y-3">
+                        <div className="space-y-1">
+                          <h2 className="font-serif text-xl font-bold text-prepeasy-text-primary">Algo salió mal</h2>
+                          <p className="text-xs text-stone-500">No pudimos generar tu plan. Revisa tu conexión e intenta de nuevo.</p>
+                          {plannerError && <p className="text-xs text-red-400 font-mono break-all mt-1">{plannerError}</p>}
+                        </div>
+                        <button
+                          onClick={generateWeeklyPlan}
+                          className="bg-prepeasy-primary text-white font-bold text-sm py-3 px-6 rounded-xl w-full flex items-center justify-center gap-2 transition-all active:scale-95"
+                        >
+                          <RefreshCw className="w-4 h-4" /> Reintentar
+                        </button>
+                        <button
+                          onClick={() => { setShowKeyInput(true); setKeyDraft(''); }}
+                          className="text-xs text-stone-400 underline"
+                        >
+                          Cambiar clave de API
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
