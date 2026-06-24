@@ -64,8 +64,17 @@ export default function App() {
     } catch { return []; }
   });
   const saveIngredients = (updated: Ingredient[]) => {
-    localStorage.setItem('pantry_ingredients', JSON.stringify(updated));
-    setIngredients(updated);
+    // Deduplicate by normalized name, keep the one with fewest expirationDays (most urgent)
+    const seen = new Map<string, Ingredient>();
+    for (const ing of updated) {
+      const key = cleanIngredient(ing.name);
+      if (!seen.has(key) || ing.expirationDays < seen.get(key)!.expirationDays) {
+        seen.set(key, ing);
+      }
+    }
+    const deduped = Array.from(seen.values());
+    localStorage.setItem('pantry_ingredients', JSON.stringify(deduped));
+    setIngredients(deduped);
   };
   const [recipes, setRecipes] = useState<Recipe[]>(ALL_RECIPES);
   const [history, setHistory] = useState<CookedHistory[]>(INITIAL_HISTORY);
@@ -343,13 +352,17 @@ export default function App() {
       .replace(/ó/g,'o').replace(/ú/g,'u').replace(/ü/g,'u')
       .replace(/ñ/g,'n').replace(/[^a-z0-9 ]/g,'').trim();
 
-  // Match helper: exact whole-word match only (avoids "champiñones" matching "piñones")
+  // Descriptor words that should NOT trigger ingredient matches alone
+  const MATCH_STOPWORDS = new Set(['fresco','seco','maduro','verde','rojo','cocido','molido','opcional','grande','pequeno','baja','bajo','caliente','rallado','picado','entero','troceado','desmenuzado','crudo','natural']);
+
+  // Match helper: exact whole-word match, ignoring generic descriptor words
   const ingredientMatches = (pantryName: string, recipeName: string): boolean => {
     const p = cleanIngredient(pantryName);
     const r = cleanIngredient(recipeName);
     if (p === r) return true;
-    const pWords = new Set(p.split(' ').filter(w => w.length > 3));
-    const rWords = new Set(r.split(' ').filter(w => w.length > 3));
+    const pWords = new Set(p.split(' ').filter(w => w.length > 3 && !MATCH_STOPWORDS.has(w)));
+    const rWords = new Set(r.split(' ').filter(w => w.length > 3 && !MATCH_STOPWORDS.has(w)));
+    if (pWords.size === 0 || rWords.size === 0) return false;
     for (const w of pWords) { if (rWords.has(w)) return true; }
     return false;
   };
@@ -368,7 +381,7 @@ export default function App() {
     .filter(r => r.energyLevel === energyLevel)
     .map(recipe => {
       const expiringScore = ingredients.filter(ing =>
-        ing.expirationDays <= 5 &&
+        ing.expirationDays <= 3 &&
         recipe.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name))
       ).length * 2;
       const pantryScore = recipe.ingredientsNeeded.filter(n => n.inPantry).length;
@@ -950,7 +963,9 @@ export default function App() {
                 <div className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x scrollbar-none -mx-5 px-5" id="suggestions-carousel">
 
                   {activeRecipes.map((recipe, index) => {
-                    const expiringCount = ingredients.filter(i => i.expirationDays <= 3).length;
+                    const expiringCount = !pantryIsEmpty ? ingredients.filter(i =>
+                      i.expirationDays <= 3 && recipe.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
+                    ).length : 0;
                     const difficultyLabel = recipe.energyLevel === 'low' ? 'Fácil' : recipe.energyLevel === 'balanced' ? 'Medio' : 'Elaborado';
                     const visibleIngredients = recipe.ingredientsNeeded.slice(0, 2);
                     const extraCount = recipe.ingredientsNeeded.length - 2;
@@ -994,8 +1009,8 @@ export default function App() {
                             {/* Title */}
                             <h3 className="font-serif text-lg font-bold text-prepeasy-text-primary leading-snug">{recipe.title}</h3>
 
-                            {/* Expiring tag — solo si hay ingredientes por vencer */}
-                            {index === 0 && expiringCount > 0 && !pantryIsEmpty && (
+                            {/* Expiring tag — ingredientes de esta receta que vencen pronto */}
+                            {expiringCount > 0 && (
                               <span className="inline-flex items-center text-xs font-bold text-amber-700">
                                 Aprovecha {expiringCount} ingrediente{expiringCount > 1 ? 's' : ''} por vencer
                               </span>
