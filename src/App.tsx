@@ -291,13 +291,20 @@ export default function App() {
   };
 
   // Match helper: checks if two ingredient names refer to the same thing
+  // Uses whole-word matching to avoid false positives (e.g. "champiñones" ≠ "piñones")
+  const normalize = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, '');
+
   const ingredientMatches = (pantryName: string, recipeName: string) => {
-    const p = pantryName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    const r = recipeName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-    if (p.includes(r) || r.includes(p)) return true;
-    const pWords = p.split(' ').filter(w => w.length > 2);
-    const rWords = r.split(' ').filter(w => w.length > 2);
-    return pWords.some(w => r.includes(w)) || rWords.some(w => p.includes(w));
+    const p = normalize(pantryName);
+    const r = normalize(recipeName);
+    if (p === r) return true;
+    const pWords = p.split(' ').filter(w => w.length > 3);
+    const rWords = r.split(' ').filter(w => w.length > 3);
+    // A word must match exactly as a full word in the other string, not as a substring
+    const rWordSet = r.split(' ');
+    const pWordSet = p.split(' ');
+    return pWords.some(w => rWordSet.includes(w)) || rWords.some(w => pWordSet.includes(w));
   };
 
   // For each recipe, dynamically compute which ingredients are in the pantry
