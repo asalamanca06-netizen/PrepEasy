@@ -283,15 +283,22 @@ export default function App() {
     return match ? INGREDIENT_IMAGES[match] : CATEGORY_FALLBACK_IMAGES[ing.category];
   };
 
+  // Match helper: checks if two ingredient names refer to the same thing
+  const ingredientMatches = (pantryName: string, recipeName: string) => {
+    const p = pantryName.toLowerCase();
+    const r = recipeName.toLowerCase();
+    const pWords = p.split(' ').filter(w => w.length > 3);
+    const rWords = r.split(' ').filter(w => w.length > 3);
+    return pWords.some(w => r.includes(w)) || rWords.some(w => p.includes(w));
+  };
+
   // Filtered and sorted recipes: prioritize those that use the most expiring ingredients
   const activeRecipes = recipes
     .filter(r => r.energyLevel === energyLevel)
     .map(recipe => {
-      const expiringMatches = pantryIsEmpty ? 0 : ingredients.filter(ing =>
+      const expiringMatches = ingredients.filter(ing =>
         ing.expirationDays <= 3 &&
-        recipe.ingredientsNeeded.some(n =>
-          n.name.toLowerCase().split(' ').some(w => w.length > 3 && ing.name.toLowerCase().includes(w))
-        )
+        recipe.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name))
       ).length;
       return { ...recipe, _expiringScore: expiringMatches };
     })
@@ -624,7 +631,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                     const expiringMatches = ingredients.filter(i =>
                       i.expirationDays <= 3 && !pantryIsEmpty &&
                       activeCookingRecipe.ingredientsNeeded.some(n =>
-                        n.name.toLowerCase().split(' ').some(w => w.length > 3 && i.name.toLowerCase().includes(w))
+                        ingredientMatches(i.name, n.name)
                       )
                     );
                     if (expiringMatches.length > 0) {
@@ -651,7 +658,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                   const expiringMatches = ingredients.filter(i =>
                     i.expirationDays <= 3 && !pantryIsEmpty &&
                     activeCookingRecipe.ingredientsNeeded.some(n =>
-                      n.name.toLowerCase().split(' ').some(w => w.length > 3 && i.name.toLowerCase().includes(w))
+                      ingredientMatches(i.name, n.name)
                     )
                   );
                   if (expiringMatches.length === 0) return null;
@@ -736,7 +743,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                         return key ? ingEmojis[key] : '🌿';
                       };
                       const pantryMatch = ingredients.find(i =>
-                        i.name.toLowerCase().split(' ').some(w => w.length > 3 && ing.name.toLowerCase().includes(w))
+                        ingredientMatches(i.name, ing.name)
                       );
                       const expiryLabel = pantryMatch
                         ? pantryMatch.expirationDays === 0 ? 'Vence hoy'
