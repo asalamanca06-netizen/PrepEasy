@@ -80,7 +80,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Añade las hojas de albahaca, una cucharada de yogur griego, sal y pimienta.',
       'Tritura todo hasta que quede una textura sedosa.'
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1547592165-e1d17fed6005?auto=format&fit=crop&q=80&w=600'
+    imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=600'
   },
 
   // BALANCED ENERGY (Equilibrado) - Platos con proteínas completas y vegetales, 15-20 minutos
@@ -123,7 +123,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Cocina al horno durante 12 minutos o en microondas durante 4 minutos a máxima potencia.',
       'Sirve caliente acompañado de tomates cherry frescos de tu despensa.'
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1485921325814-a5341f6150d4?auto=format&fit=crop&q=80&w=600'
+    imageUrl: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&q=80&w=600'
   },
   {
     id: 'rec_6',

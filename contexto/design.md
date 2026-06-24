@@ -65,11 +65,11 @@ RecetaRápida es un design system pensado para profesionales ocupados que desean
 
 ### Familias
 
-- **Sans Serif (Principal)**: Segoe UI, Roboto, -apple-system
+- **Sans Serif (Principal)**: Hanken Grotesk, sans-serif
   - Rol: Cuerpo de texto, UI labels, interfaz general.
   - Característica: Legibilidad, modernidad, profesionalismo.
-- **Serif (Acentos)**: Georgia, Garamond, serif
-  - Rol: Títulos de recetas, nombres de platos, elementos destacados.
+- **Serif (Acentos)**: EB Garamond, serif
+  - Rol: Títulos de pantalla, nombres de recetas, elementos destacados.
   - Característica: Calidez, sofisticación, invita a explorar.
 
 ### Escala Tipográfica
@@ -85,12 +85,12 @@ RecetaRápida es un design system pensado para profesionales ocupados que desean
 - **Body Large**: 16px, peso 400 (sans), line-height 1.5
   - Uso: Textos principales, descripciones.
 - **Body Regular**: 14px, peso 400 (sans), line-height 1.5
-  - Uso: Cuerpo estándar, descripciones secundarias.
+  - Uso: Cuerpo estándar, descripciones secundarias, títulos de cards CTA.
 - **Body Small**: 12px, peso 400 (sans), line-height 1.4
-  - Uso: Labels, metadatos, información complementaria.
-- **Caption**: 11px, peso 500 (sans), line-height 1.4
-  - Uso: Hints, información muy pequeña, notas.
-  - **⚠️ Mínimo absoluto de la interfaz. No usar tamaños inferiores a 11px.**
+  - Uso: Labels, metadatos, información complementaria, descripciones dentro de cards CTA.
+- **Caption**: 12px (`text-xs`), peso 500 (sans), line-height 1.4
+  - Uso: Hints, chips, badges, labels, información complementaria.
+  - **⚠️ Mínimo absoluto de la interfaz. No usar tamaños inferiores a 12px.**
 
 ---
 
@@ -117,6 +117,21 @@ RecetaRápida es un design system pensado para profesionales ocupados que desean
 ---
 
 ## Componentes Base
+
+### Select / Dropdown
+
+Todos los elementos `<select>` deben seguir este patrón:
+- `appearance-none` para ocultar la flecha nativa del browser
+- `pl-3 pr-8` para dejar espacio al ícono custom
+- Ícono `ChevronDown` de Lucide posicionado `absolute right-2.5`, `pointer-events-none`
+- Mismo estilo de fondo, borde y focus que los inputs de texto
+
+```jsx
+<div className="relative">
+  <select className="appearance-none ... pl-3 pr-8">...</select>
+  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+</div>
+```
 
 ### Border Radius
 
@@ -146,6 +161,7 @@ RecetaRápida es un design system pensado para profesionales ocupados que desean
 
 ### Botón Primario
 
+- **Tipografía**: 14px (`text-sm`), peso 700 — todos los CTAs principales usan este tamaño.
 - **Default**: Fondo `#2D9D4E`, texto blanco
 - **Hover**: Fondo `#1F6B35`, sombra elevation 2
 - **Pressed**: Fondo `#1F6B35`, sin sombra

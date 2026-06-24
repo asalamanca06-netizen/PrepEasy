@@ -35,5 +35,20 @@ export interface CookedHistory {
 }
 
 export type AppState = 'connected' | 'offline' | 'loading';
-export type ActiveTab = 'inicio' | 'despensa' | 'planificador' | 'historial' | 'recetas';
+export type ActiveTab = 'inicio' | 'despensa' | 'planificador' | 'favoritos' | 'recetas';
 export type EnergyLevel = 'low' | 'balanced' | 'disconnect';
+
+export type PlannerMode = 'rapido' | 'sin_apuro' | 'me_luzco';
+export type PlannerStatus = 'empty' | 'loading' | 'ready' | 'error';
+
+export interface PlannedRecipe {
+  day: string;
+  title: string;
+  description: string;
+  prepTime: number;
+  missingIngredients: string[];
+}
+
+export interface WeeklyPlan {
+  recipes: PlannedRecipe[];
+}
