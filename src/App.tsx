@@ -375,9 +375,20 @@ export default function App() {
         return { recipe: r, score: expiringScore + pantryScore + priorityScore };
       }).sort((a, b) => b.score - a.score);
 
-      const picked = scored.slice(0, 5).map(s => s.recipe);
+      // Pick diversified top 5: max 2 recipes per ingredient category (id prefix)
+      const picked: typeof scored[0]['recipe'][] = [];
+      const categoryCount: Record<string, number> = {};
+      for (const { recipe } of scored) {
+        const category = recipe.id.replace(/-\d+$/, ''); // e.g. "pollo", "platano"
+        if ((categoryCount[category] ?? 0) < 2) {
+          picked.push(recipe);
+          categoryCount[category] = (categoryCount[category] ?? 0) + 1;
+        }
+        if (picked.length === 5) break;
+      }
+      // Fill remaining slots if pool was too small
       if (picked.length < 5) {
-        const extras = ALL_RECIPES.filter(r => !picked.find(p => p.id === r.id));
+        const extras = pool.filter(r => !picked.find(p => p.id === r.id));
         picked.push(...extras.slice(0, 5 - picked.length));
       }
 
