@@ -47,10 +47,6 @@ import {
 import { Ingredient, Recipe, CookedHistory, AppState, ActiveTab, EnergyLevel, PlannerMode, PlannerStatus, WeeklyPlan, PlannedRecipe } from './types';
 import { INITIAL_INGREDIENTS, ALL_RECIPES, INITIAL_HISTORY, INGREDIENT_IMAGES, CATEGORY_FALLBACK_IMAGES } from './data';
 
-// Module-level plan cache — survives React StrictMode remounts and any re-render
-let _weeklyPlanCache: import('./types').WeeklyPlan | null = null;
-try { _weeklyPlanCache = JSON.parse(localStorage.getItem('weeklyPlan') ?? 'null'); } catch {}
-
 export default function App() {
   // Navigation & Core States
   const [activeTab, setActiveTab] = useState<ActiveTab>('inicio');
@@ -121,13 +117,13 @@ export default function App() {
   const [plannerMode, setPlannerMode] = useState<PlannerMode>(() => {
     return (localStorage.getItem('plannerMode') as PlannerMode) ?? 'rapido';
   });
-  const [weeklyPlanVersion, setWeeklyPlanVersion] = useState(0);
-  const weeklyPlan = _weeklyPlanCache;
+  const [weeklyPlan, setWeeklyPlanState] = useState<WeeklyPlan | null>(() => {
+    try { return JSON.parse(localStorage.getItem('weeklyPlan') ?? 'null'); } catch { return null; }
+  });
   const setWeeklyPlan = (plan: WeeklyPlan | null) => {
-    _weeklyPlanCache = plan;
+    setWeeklyPlanState(plan);
     if (plan) localStorage.setItem('weeklyPlan', JSON.stringify(plan));
     else localStorage.removeItem('weeklyPlan');
-    setWeeklyPlanVersion(v => v + 1);
   };
   const [plannerError, setPlannerError] = useState<string | null>(null);
   const [showMissingIngredients, setShowMissingIngredients] = useState(false);
