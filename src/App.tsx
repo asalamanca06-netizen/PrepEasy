@@ -290,21 +290,22 @@ export default function App() {
     return match ? INGREDIENT_IMAGES[match] : CATEGORY_FALLBACK_IMAGES[ing.category];
   };
 
-  // Match helper: checks if two ingredient names refer to the same thing
-  // Uses whole-word matching to avoid false positives (e.g. "champiñones" ≠ "piñones")
-  const normalize = (s: string) =>
-    s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, '');
+  // Normalizes Spanish ingredient names for comparison
+  const cleanIngredient = (s: string) =>
+    s.toLowerCase()
+      .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i')
+      .replace(/ó/g,'o').replace(/ú/g,'u').replace(/ü/g,'u')
+      .replace(/ñ/g,'n').replace(/[^a-z0-9 ]/g,'').trim();
 
-  const ingredientMatches = (pantryName: string, recipeName: string) => {
-    const p = normalize(pantryName);
-    const r = normalize(recipeName);
+  // Match helper: exact whole-word match only (avoids "champiñones" matching "piñones")
+  const ingredientMatches = (pantryName: string, recipeName: string): boolean => {
+    const p = cleanIngredient(pantryName);
+    const r = cleanIngredient(recipeName);
     if (p === r) return true;
-    const pWords = p.split(' ').filter(w => w.length > 3);
-    const rWords = r.split(' ').filter(w => w.length > 3);
-    // A word must match exactly as a full word in the other string, not as a substring
-    const rWordSet = r.split(' ');
-    const pWordSet = p.split(' ');
-    return pWords.some(w => rWordSet.includes(w)) || rWords.some(w => pWordSet.includes(w));
+    const pWords = new Set(p.split(' ').filter(w => w.length > 3));
+    const rWords = new Set(r.split(' ').filter(w => w.length > 3));
+    for (const w of pWords) { if (rWords.has(w)) return true; }
+    return false;
   };
 
   // For each recipe, dynamically compute which ingredients are in the pantry
