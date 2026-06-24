@@ -5,6 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    base: '/PrepEasy/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
