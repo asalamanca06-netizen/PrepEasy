@@ -52,8 +52,17 @@ export default function App() {
   const [appState, setAppState] = useState<AppState>('connected');
   const [energyLevel, setEnergyLevel] = useState<EnergyLevel>('low');
   
-  // Dynamic Data Lists
-  const [ingredients, setIngredients] = useState<Ingredient[]>(INITIAL_INGREDIENTS);
+  // Dynamic Data Lists — ingredients persisted to localStorage, start empty on first visit
+  const [ingredients, setIngredients] = useState<Ingredient[]>(() => {
+    try {
+      const saved = localStorage.getItem('pantry_ingredients');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const saveIngredients = (updated: Ingredient[]) => {
+    localStorage.setItem('pantry_ingredients', JSON.stringify(updated));
+    setIngredients(updated);
+  };
   const [recipes, setRecipes] = useState<Recipe[]>(ALL_RECIPES);
   const [history, setHistory] = useState<CookedHistory[]>(INITIAL_HISTORY);
   
@@ -187,7 +196,7 @@ export default function App() {
       quantity: `${newIngQtyAmount} ${newIngQtyUnit}`,
       isNearingExpiry: newIngExpiry <= 2
     };
-    setIngredients([newIng, ...ingredients]);
+    saveIngredients([newIng, ...ingredients]);
     setNewIngName('');
     setNewIngQtyAmount('');
     setNewIngQtyUnit('g');
@@ -214,16 +223,14 @@ export default function App() {
     setCompletedSteps([]);
     setIsTimerRunning(false);
     
-    // Automatically reduce cooking ingredients expirations as part of simulation
-    setIngredients(prev => 
-      prev.map(i => {
-        const matchesUsed = activeCookingRecipe.ingredientsNeeded.some(n => n.name.toLowerCase() === i.name.toLowerCase());
-        if (matchesUsed) {
-          return { ...i, quantity: 'Consumido' };
-        }
-        return i;
-      }).filter(i => i.quantity !== 'Consumido')
-    );
+    // Automatically remove used ingredients from pantry
+    const updated = ingredients
+      .map(i => {
+        const matchesUsed = activeCookingRecipe.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name));
+        return matchesUsed ? { ...i, quantity: 'Consumido' } : i;
+      })
+      .filter(i => i.quantity !== 'Consumido');
+    saveIngredients(updated);
 
     setActiveTab('favoritos');
   };
@@ -240,7 +247,7 @@ export default function App() {
         { id: 'scan_4', name: 'Salsa de soja baja en sal', category: 'Condimentos', expirationDays: 120, quantity: '250ml' },
         { id: 'scan_5', name: 'Queso feta griego', category: 'Lácteos', expirationDays: 8, quantity: '200g' }
       ];
-      setIngredients(prev => [...scanned, ...prev]);
+      saveIngredients([...scanned, ...ingredients]);
       setPantryIsEmpty(false);
       setIsScanningReceipt(false);
       setActiveTab('despensa');
@@ -254,7 +261,7 @@ export default function App() {
 
   // Delete individual ingredients
   const handleDeleteIngredient = (id: string) => {
-    setIngredients(prev => prev.filter(i => i.id !== id));
+    saveIngredients(ingredients.filter(i => i.id !== id));
   };
 
   // Helper function to see ingredients count match for a recipe
