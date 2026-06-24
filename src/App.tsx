@@ -1211,6 +1211,11 @@ export default function App() {
                   ))}
                 </div>
 
+                {/* Debug: remove after fix */}
+                <p className="text-[10px] text-stone-300 text-center">
+                  v{weeklyPlanVersion} · ls:{localStorage.getItem('weeklyPlan') ? '✓' : '✗'} · status:{plannerStatus}
+                </p>
+
                 {/* Empty state */}
                 {plannerStatus === 'empty' && (
                   <div className="flex flex-col items-center text-center gap-4 py-10">
