@@ -1,0 +1,28 @@
+src/data.ts
+  s_8244d6d273f01b::t_ef2c5c47273395 21
+  s_8244d6d273f01b::t_5cc08263f2e91a 7
+src/App.tsx
+  s_8244d6d273f01b::t_42fdc3b148280e 209
+src/recipes-data.ts
+  s_8244d6d273f01b::t_0850ea7a3a5a04 1-1682,6690
+  s_8244d6d273f01b::t_59a44e9250899f 5020-6688
+  s_8244d6d273f01b::t_b2aa0e43633bc9 1683-3479
+  s_8244d6d273f01b::t_f7ac8156cef8fa 3480-5019
+  s_8244d6d273f01b::t_343bee51c2e6a7 6689
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "9dc6fa6929da7ad73d2767bbecc0a18b18f45e8e",
+  "prompts": {},
+  "sessions": {
+    "s_8244d6d273f01b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "db24f1c8-b8fb-42ca-b37b-214548f4939b",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Carlos Andres Salamanca Venegas <carlosandres.salamancavenegas@mercadolibre.com.co>"
+    }
+  }
+}
