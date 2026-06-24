@@ -1,0 +1,21 @@
+src/App.tsx
+  s_c6f0d976cfe6d6::t_b3e310328e18d1 1052-1054
+src/recipes-data.ts
+  s_c6f0d976cfe6d6::t_e0bfbe4e7f8070 29,57,84,110,137,162,189,216,243,270,298,319,342,365,391,417,441,463,487,513,539,561,587,610,637,663,690,715,741,767,794,820,844,870,895,921,947,973,998,1025
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "77e2f512e5333c3a19433a90993baeee4a446a62",
+  "prompts": {},
+  "sessions": {
+    "s_c6f0d976cfe6d6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7e1c7fe-5e81-4ed8-887f-383a2d583e97",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Carlos Andres Salamanca Venegas <carlosandres.salamancavenegas@mercadolibre.com.co>"
+    }
+  }
+}
