@@ -285,24 +285,35 @@ export default function App() {
 
   // Match helper: checks if two ingredient names refer to the same thing
   const ingredientMatches = (pantryName: string, recipeName: string) => {
-    const p = pantryName.toLowerCase();
-    const r = recipeName.toLowerCase();
-    const pWords = p.split(' ').filter(w => w.length > 3);
-    const rWords = r.split(' ').filter(w => w.length > 3);
+    const p = pantryName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const r = recipeName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (p.includes(r) || r.includes(p)) return true;
+    const pWords = p.split(' ').filter(w => w.length > 2);
+    const rWords = r.split(' ').filter(w => w.length > 2);
     return pWords.some(w => r.includes(w)) || rWords.some(w => p.includes(w));
   };
 
+  // For each recipe, dynamically compute which ingredients are in the pantry
+  const recipesWithPantryStatus = recipes.map(recipe => ({
+    ...recipe,
+    ingredientsNeeded: recipe.ingredientsNeeded.map(ing => ({
+      ...ing,
+      inPantry: ingredients.some(pi => ingredientMatches(pi.name, ing.name))
+    }))
+  }));
+
   // Filtered and sorted recipes: prioritize those that use the most expiring ingredients
-  const activeRecipes = recipes
+  const activeRecipes = recipesWithPantryStatus
     .filter(r => r.energyLevel === energyLevel)
     .map(recipe => {
-      const expiringMatches = ingredients.filter(ing =>
-        ing.expirationDays <= 3 &&
+      const expiringScore = ingredients.filter(ing =>
+        ing.expirationDays <= 5 &&
         recipe.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name))
-      ).length;
-      return { ...recipe, _expiringScore: expiringMatches };
+      ).length * 2;
+      const pantryScore = recipe.ingredientsNeeded.filter(n => n.inPantry).length;
+      return { ...recipe, _score: expiringScore + pantryScore };
     })
-    .sort((a, b) => b._expiringScore - a._expiringScore);
+    .sort((a, b) => b._score - a._score);
 
   const generateWeeklyPlan = async () => {
     if (ingredients.length === 0) return;
