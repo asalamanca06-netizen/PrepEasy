@@ -269,8 +269,8 @@ export default function App() {
     if (pantryIsEmpty) return { text: 'Te faltan ingredientes', style: 'text-prepeasy-error bg-red-50 border-red-100' };
     
     const needed = recipe.ingredientsNeeded.filter(n => n.required);
-    const inPantryTotal = needed.filter(n => 
-      ingredients.some(i => i.name.toLowerCase().includes(n.name.toLowerCase().substring(0, 5)))
+    const inPantryTotal = needed.filter(n =>
+      ingredients.some(i => ingredientMatches(i.name, n.name))
     ).length;
 
     if (inPantryTotal === needed.length) {
