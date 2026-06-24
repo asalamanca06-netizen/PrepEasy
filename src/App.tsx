@@ -27,6 +27,7 @@ import {
   Wifi, 
   Check, 
   Trash2, 
+  Pencil,
   Star, 
   TrendingUp, 
   Smile,
@@ -92,6 +93,7 @@ export default function App() {
   const [galleryEnergyFilter, setGalleryEnergyFilter] = useState<'all' | 'low' | 'balanced' | 'disconnect'>('all');
   const [isScanningReceipt, setIsScanningReceipt] = useState<boolean>(false);
   const [showAddIngredientModal, setShowAddIngredientModal] = useState<boolean>(false);
+  const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
   const [isChefTipVisible, setIsChefTipVisible] = useState<boolean>(true);
   
   // New entry state
@@ -231,6 +233,36 @@ export default function App() {
     setPantryIsEmpty(false);
 
     setActiveTab('inicio');
+  };
+
+  const openEditIngredient = (ing: Ingredient) => {
+    setEditingIngredient(ing);
+    setNewIngName(ing.name);
+    const parts = ing.quantity.split(' ');
+    setNewIngQtyAmount(parseFloat(parts[0]) || 1);
+    setNewIngQtyUnit((parts[1] as any) || 'unidades');
+    setNewIngExpiry(ing.expirationDays);
+    setNewIngCategory(ing.category as any);
+    setIngFormErrors({});
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingIngredient) return;
+    const errors: { name?: string; qty?: string } = {};
+    if (!newIngName.trim()) errors.name = 'El nombre no puede estar vacío.';
+    if (newIngQtyAmount === '' || Number(newIngQtyAmount) <= 0) errors.qty = 'La cantidad debe ser mayor a 0.';
+    if (Object.keys(errors).length > 0) { setIngFormErrors(errors); return; }
+    const updated = ingredients.map(i =>
+      i.id === editingIngredient.id
+        ? { ...i, name: newIngName.trim(), quantity: `${newIngQtyAmount} ${newIngQtyUnit}`, expirationDays: newIngExpiry, category: newIngCategory, isNearingExpiry: newIngExpiry <= 2 }
+        : i
+    );
+    saveIngredients(updated);
+    setEditingIngredient(null);
+    setNewIngName('');
+    setNewIngQtyAmount('');
+    setIngFormErrors({});
   };
 
   // Action: Complete cooking recipe
@@ -1261,12 +1293,20 @@ export default function App() {
                               </div>
                             </div>
 
-                            <button 
-                              onClick={() => handleDeleteIngredient(ing.id)}
-                              className="p-1.5 hover:bg-red-50 rounded-lg text-stone-400 hover:text-prepeasy-error transition-all"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => openEditIngredient(ing)}
+                                className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-400 hover:text-stone-600 transition-all"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteIngredient(ing.id)}
+                                className="p-1.5 hover:bg-red-50 rounded-lg text-stone-400 hover:text-prepeasy-error transition-all"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -1996,6 +2036,89 @@ export default function App() {
                     className="w-full bg-[#006b2d] hover:bg-[#005222] text-white font-bold py-3.5 px-4 rounded-xl text-sm transition-all shadow-md active:scale-[0.98]"
                   >
                     Agregar a despensa
+                  </button>
+                </div>
+              </motion.form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Edit Ingredient Modal */}
+        <AnimatePresence>
+          {editingIngredient && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-stone-900/65 backdrop-blur-md z-[110] flex items-center justify-center p-0"
+            >
+              <motion.form
+                onSubmit={handleSaveEdit}
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                className="bg-white w-full h-full flex flex-col justify-between p-6 overflow-y-auto"
+              >
+                <div className="flex justify-between items-center pb-4">
+                  <h3 className="font-serif font-bold text-stone-800 text-3xl">Editar Ingrediente</h3>
+                  <button type="button" onClick={() => { setEditingIngredient(null); setIngFormErrors({}); }}
+                    className="text-stone-400 hover:text-stone-600 w-10 h-10 flex items-center justify-center rounded-full hover:bg-stone-100">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex-1 py-6 px-1 space-y-6 overflow-y-auto max-w-lg mx-auto w-full">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-500 tracking-wider">Nombre del alimento</label>
+                    <input type="text" value={newIngName}
+                      onChange={(e) => { setNewIngName(e.target.value); setIngFormErrors(prev => ({ ...prev, name: undefined })); }}
+                      className={`w-full text-sm p-3 bg-[#F7F9F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary border ${ingFormErrors.name ? 'border-[#EF5350]' : 'border-[#D5D5D5]'}`}
+                    />
+                    {ingFormErrors.name && <p className="text-xs text-[#EF5350] font-medium">{ingFormErrors.name}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-500 tracking-wider">Cantidad</label>
+                    <div className="flex gap-2">
+                      <input type="number" min="0.01" step="any" value={newIngQtyAmount}
+                        onChange={(e) => { setNewIngQtyAmount(e.target.value === '' ? '' : Number(e.target.value)); setIngFormErrors(prev => ({ ...prev, qty: undefined })); }}
+                        className={`flex-1 text-sm py-3 pl-3 pr-3 bg-[#F7F9F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary border [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${ingFormErrors.qty ? 'border-[#EF5350]' : 'border-[#D5D5D5]'}`}
+                      />
+                      <div className="relative">
+                        <select value={newIngQtyUnit} onChange={(e) => setNewIngQtyUnit(e.target.value as any)}
+                          className="appearance-none text-sm py-3 pl-3 pr-8 bg-[#F7F9F6] border border-[#D5D5D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary h-[48px] w-24">
+                          <option value="g">g</option><option value="kg">kg</option>
+                          <option value="ml">ml</option><option value="L">L</option>
+                          <option value="unidades">un.</option>
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                      </div>
+                    </div>
+                    {ingFormErrors.qty && <p className="text-xs text-[#EF5350] font-medium">{ingFormErrors.qty}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-500 tracking-wider">Días para caducar</label>
+                    <input type="number" min="0" value={newIngExpiry}
+                      onChange={(e) => setNewIngExpiry(parseInt(e.target.value) || 0)}
+                      className="w-full text-sm p-3 bg-[#F7F9F6] border border-[#D5D5D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-500 tracking-wider">Categoría</label>
+                    <div className="relative">
+                      <select value={newIngCategory} onChange={(e: any) => setNewIngCategory(e.target.value)}
+                        className="appearance-none w-full text-sm py-3 pl-3 pr-8 bg-[#F7F9F6] border border-[#D5D5D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary h-[48px]">
+                        <option value="Verduras">Verduras 🥕</option><option value="Carnes">Carnes 🍗</option>
+                        <option value="Lácteos">Lácteos 🥛</option><option value="Granos">Granos 🌾</option>
+                        <option value="Condimentos">Condimentos 🧂</option><option value="Otros">Otros ⚙</option>
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-stone-100 shrink-0">
+                  <button type="submit"
+                    className="w-full bg-[#006b2d] hover:bg-[#005222] text-white font-bold py-3.5 px-4 rounded-xl text-sm transition-all shadow-md active:scale-[0.98]">
+                    Guardar cambios
                   </button>
                 </div>
               </motion.form>
