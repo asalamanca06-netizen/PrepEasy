@@ -1225,7 +1225,7 @@ export default function App() {
                   ] as { id: PlannerMode; label: string }[]).map(m => (
                     <button
                       key={m.id}
-                      onClick={() => { setPlannerMode(m.id); setPlannerStatus('empty'); setWeeklyPlan(null); localStorage.removeItem('weeklyPlan'); }}
+                      onClick={() => { if (m.id !== plannerMode) { setPlannerMode(m.id); setPlannerStatus('empty'); setWeeklyPlan(null); localStorage.removeItem('weeklyPlan'); } }}
                       className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all border ${
                         plannerMode === m.id
                           ? 'bg-prepeasy-primary text-white border-prepeasy-primary'
