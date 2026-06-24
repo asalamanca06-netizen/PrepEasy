@@ -1406,9 +1406,9 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.06 }}
                           onClick={() => {
-                            const match = recipes.find(r =>
+                            const match = recipesWithPantryStatus.find(r =>
                               r.title.toLowerCase().includes(planned.title.toLowerCase().split(' ')[0])
-                            ) ?? recipes[idx % recipes.length];
+                            ) ?? recipesWithPantryStatus[idx % recipesWithPantryStatus.length];
                             setActiveCookingRecipe(match);
                           }}
                           className="bg-white border border-neutral-100 rounded-2xl p-4 flex items-start justify-between gap-3 active:scale-[0.98] transition-transform cursor-pointer"
@@ -1519,7 +1519,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {recipes.filter(r => favorites.includes(r.id)).map(recipe => (
+                    {recipesWithPantryStatus.filter(r => favorites.includes(r.id)).map(recipe => (
                       <div
                         key={recipe.id}
                         className="bg-white border border-neutral-100 rounded-2xl overflow-hidden flex shadow-xs"
@@ -1626,7 +1626,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                 {/* Grid / List of recipes */}
                 <div className="space-y-4">
                   {(() => {
-                    const filtered = recipes.filter(r => {
+                    const filtered = recipesWithPantryStatus.filter(r => {
                       const matchesEnergy = galleryEnergyFilter === 'all' || r.energyLevel === galleryEnergyFilter;
                       const matchesSearch = searchQuery.trim() === '' || 
                         r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
