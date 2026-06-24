@@ -1439,15 +1439,7 @@ export default function App() {
                 {/* Ready state — 5 recipe cards */}
                 {plannerStatus === 'ready' && weeklyPlan && (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-prepeasy-text-secondary tracking-wider">Tu semana</h3>
-                      <button
-                        onClick={generateWeeklyPlan}
-                        className="flex items-center gap-1 text-xs font-bold text-prepeasy-primary"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" /> Regenerar
-                      </button>
-                    </div>
+                    <h3 className="text-sm font-bold text-prepeasy-text-secondary tracking-wider">Tu semana</h3>
 
 
 
