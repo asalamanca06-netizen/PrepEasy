@@ -1,0 +1,21 @@
+src/App.tsx
+  s_8244d6d273f01b::t_c004d99af9c5e8 1296-1309
+  s_8244d6d273f01b::t_afcf94d7e041f6 2046-2128
+  s_8244d6d273f01b::t_c2eb7b953fcab1 30,96,238-266
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "8a301a0e48533e8f40c70560295d627aa12fe255",
+  "prompts": {},
+  "sessions": {
+    "s_8244d6d273f01b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "db24f1c8-b8fb-42ca-b37b-214548f4939b",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Carlos Andres Salamanca Venegas <carlosandres.salamancavenegas@mercadolibre.com.co>"
+    }
+  }
+}
