@@ -1202,7 +1202,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                 {/* Header */}
                 <div>
                   <h1 className="font-serif text-3xl font-bold text-prepeasy-text-primary tracking-tight">Planificador</h1>
-                  <p className="text-xs text-stone-500 mt-1">IA genera tu semana con lo que tienes en casa.</p>
+                  <p className="text-xs text-stone-500 mt-1">IA genera tu semana con lo que tienes en casa. v2</p>
                 </div>
 
                 {/* Mode selector */}
