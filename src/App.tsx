@@ -186,6 +186,13 @@ export default function App() {
     };
   }, [isTimerRunning]);
 
+  // Auto-regenerate plan when entering planificador tab with ingredients
+  useEffect(() => {
+    if (activeTab === 'planificador' && ingredients.length > 0) {
+      generateWeeklyPlan();
+    }
+  }, [activeTab]);
+
   const startKitchenTimer = (seconds: number) => {
     setTimerSeconds(seconds);
     setIsTimerRunning(true);
@@ -1443,34 +1450,7 @@ export default function App() {
                       </button>
                     </div>
 
-                    {/* CTA: new expiring ingredients added after plan was generated */}
-                    {(() => {
-                      const newExpiring = ingredients.filter(i =>
-                        i.expirationDays <= 7 &&
-                        !pantryIsEmpty &&
-                        !planIngredientIds.includes(i.id) &&
-                        ALL_RECIPES.some(ar => ar.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name)))
-                      );
-                      if (newExpiring.length === 0) return null;
-                      return (
-                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-                          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                          <div className="flex-1 space-y-2">
-                            <p className="text-sm font-semibold text-amber-900">
-                              {newExpiring.length === 1
-                                ? `Agregaste "${newExpiring[0].name}" — vence pronto, ¿incluirlo en tu plan?`
-                                : `Agregaste ${newExpiring.length} ingredientes que vencen pronto`}
-                            </p>
-                            <button
-                              onClick={() => generateWeeklyPlan(plannerMode, newExpiring.map(i => i.name))}
-                              className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all"
-                            >
-                              Recalcular recetas incluyéndolos
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })()}
+
 
                     {/* Expiring ingredients summary card */}
                     {(() => {
