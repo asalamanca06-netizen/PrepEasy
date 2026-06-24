@@ -106,19 +106,20 @@ export default function App() {
   const [plannerMode, setPlannerMode] = useState<PlannerMode>(() => {
     return (localStorage.getItem('plannerMode') as PlannerMode) ?? 'rapido';
   });
-  const [weeklyPlan, setWeeklyPlanState] = useState<WeeklyPlan | null>(() => {
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan | null>(() => {
     try { return JSON.parse(localStorage.getItem('weeklyPlan') ?? 'null'); } catch { return null; }
   });
-  const setWeeklyPlan = (plan: WeeklyPlan | null) => {
-    setWeeklyPlanState(plan);
-    if (plan) localStorage.setItem('weeklyPlan', JSON.stringify(plan));
-    else localStorage.removeItem('weeklyPlan');
-  };
   const [plannerLoading, setPlannerLoading] = useState(false);
   const [plannerError, setPlannerError] = useState<string | null>(null);
   const [showMissingIngredients, setShowMissingIngredients] = useState(false);
   // plannerStatus is fully derived — can never get out of sync with weeklyPlan
   const plannerStatus: PlannerStatus = plannerLoading ? 'loading' : plannerError ? 'error' : weeklyPlan?.recipes?.length ? 'ready' : 'empty';
+
+  // Keep weeklyPlan synced to localStorage on every change
+  useEffect(() => {
+    if (weeklyPlan) localStorage.setItem('weeklyPlan', JSON.stringify(weeklyPlan));
+    else localStorage.removeItem('weeklyPlan');
+  }, [weeklyPlan]);
   const [openrouterKey, setOpenrouterKey] = useState<string>(() => {
     const stored = localStorage.getItem('openrouter_api_key');
     const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -345,59 +346,47 @@ export default function App() {
 
   const generateWeeklyPlan = () => {
     if (ingredients.length === 0) return;
-    setPlannerLoading(true);
     setPlannerError(null);
-    setWeeklyPlanState(null);
     setShowMissingIngredients(false);
 
-    setTimeout(() => {
-      try {
-        const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+    try {
+      const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+      const pool = ALL_RECIPES.filter(r => {
+        if (plannerMode === 'rapido') return r.prepTime <= 20;
+        if (plannerMode === 'sin_apuro') return r.prepTime > 20 && r.prepTime <= 40;
+        return r.prepTime > 30;
+      });
+      const scored = pool.map(r => {
+        const expiringScore = ingredients.filter(i =>
+          i.expirationDays <= 3 && r.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
+        ).length * 3;
+        const pantryScore = r.ingredientsNeeded.filter(n =>
+          ingredients.some(i => ingredientMatches(i.name, n.name))
+        ).length;
+        return { recipe: r, score: expiringScore + pantryScore };
+      }).sort((a, b) => b.score - a.score);
 
-        // Filter recipes by mode
-        const pool = ALL_RECIPES.filter(r => {
-          if (plannerMode === 'rapido') return r.prepTime <= 20;
-          if (plannerMode === 'sin_apuro') return r.prepTime > 20 && r.prepTime <= 40;
-          return r.prepTime > 30;
-        });
-
-        // Score each recipe: expiring pantry ingredients score highest
-        const scored = pool.map(r => {
-          const expiringScore = ingredients.filter(i =>
-            i.expirationDays <= 3 && r.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
-          ).length * 3;
-          const pantryScore = r.ingredientsNeeded.filter(n =>
-            ingredients.some(i => ingredientMatches(i.name, n.name))
-          ).length;
-          return { recipe: r, score: expiringScore + pantryScore };
-        }).sort((a, b) => b.score - a.score);
-
-        // Pick 5 unique recipes
-        const picked = scored.slice(0, 5).map(s => s.recipe);
-        // Pad with random from full pool if needed
-        if (picked.length < 5) {
-          const extras = ALL_RECIPES.filter(r => !picked.find(p => p.id === r.id));
-          picked.push(...extras.slice(0, 5 - picked.length));
-        }
-
-        const planned: WeeklyPlan = {
-          recipes: days.map((day, i) => {
-            const r = picked[i];
-            const missing = r.ingredientsNeeded
-              .filter(n => n.required && !ingredients.some(i => ingredientMatches(i.name, n.name)))
-              .map(n => n.name);
-            return { day, title: r.title, description: r.description, prepTime: r.prepTime, missingIngredients: missing };
-          })
-        };
-
-        setWeeklyPlan(planned);
-        setPlannerLoading(false);
-        localStorage.setItem('plannerMode', plannerMode);
-      } catch (e) {
-        setPlannerLoading(false);
-        setPlannerError(e instanceof Error ? e.message : String(e));
+      const picked = scored.slice(0, 5).map(s => s.recipe);
+      if (picked.length < 5) {
+        const extras = ALL_RECIPES.filter(r => !picked.find(p => p.id === r.id));
+        picked.push(...extras.slice(0, 5 - picked.length));
       }
-    }, 600);
+
+      const planned: WeeklyPlan = {
+        recipes: days.map((day, i) => {
+          const r = picked[i];
+          const missing = r.ingredientsNeeded
+            .filter(n => n.required && !ingredients.some(i => ingredientMatches(i.name, n.name)))
+            .map(n => n.name);
+          return { day, title: r.title, description: r.description, prepTime: r.prepTime, missingIngredients: missing };
+        })
+      };
+
+      setWeeklyPlan(planned);
+      localStorage.setItem('plannerMode', plannerMode);
+    } catch (e) {
+      setPlannerError(e instanceof Error ? e.message : String(e));
+    }
   };
 
   return (
@@ -1210,7 +1199,7 @@ export default function App() {
                   ] as { id: PlannerMode; label: string }[]).map(m => (
                     <button
                       key={m.id}
-                      onClick={() => { if (m.id !== plannerMode) { setPlannerMode(m.id); setPlannerError(null); setPlannerLoading(false); setWeeklyPlan(null); } }}
+                      onClick={() => { if (m.id !== plannerMode) { setPlannerMode(m.id); setPlannerError(null); setWeeklyPlan(null); } }}
                       className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all border ${
                         plannerMode === m.id
                           ? 'bg-prepeasy-primary text-white border-prepeasy-primary'
