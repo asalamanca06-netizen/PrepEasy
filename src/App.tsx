@@ -345,7 +345,7 @@ export default function App() {
     })
     .sort((a, b) => b._score - a._score);
 
-  const generateWeeklyPlan = () => {
+  const generateWeeklyPlan = (mode: PlannerMode = plannerMode) => {
     if (ingredients.length === 0) return;
     setPlannerError(null);
     setShowMissingIngredients(false);
@@ -353,8 +353,8 @@ export default function App() {
     try {
       const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
       const pool = ALL_RECIPES.filter(r => {
-        if (plannerMode === 'rapido') return r.prepTime <= 20;
-        if (plannerMode === 'sin_apuro') return r.prepTime > 20 && r.prepTime <= 40;
+        if (mode === 'rapido') return r.prepTime <= 20;
+        if (mode === 'sin_apuro') return r.prepTime > 20 && r.prepTime <= 40;
         return r.prepTime > 30;
       });
       const scored = pool.map(r => {
@@ -384,7 +384,7 @@ export default function App() {
       };
 
       setWeeklyPlan(planned);
-      localStorage.setItem('plannerMode', plannerMode);
+      localStorage.setItem('plannerMode', mode);
     } catch (e) {
       setPlannerError(e instanceof Error ? e.message : String(e));
     }
@@ -1201,7 +1201,7 @@ export default function App() {
                   ] as { id: PlannerMode; label: string }[]).map(m => (
                     <button
                       key={m.id}
-                      onClick={() => { if (m.id !== plannerMode) { setPlannerMode(m.id); setPlannerError(null); } }}
+                      onClick={() => { if (m.id !== plannerMode) { setPlannerMode(m.id); setPlannerError(null); if (weeklyPlan) generateWeeklyPlan(m.id); } }}
                       className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all border ${
                         plannerMode === m.id
                           ? 'bg-prepeasy-primary text-white border-prepeasy-primary'
