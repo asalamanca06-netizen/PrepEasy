@@ -4,6 +4,7 @@
  */
 
 import { Ingredient, Recipe, CookedHistory } from './types';
+export { ALL_RECIPES } from './recipes-data';
 
 export const INITIAL_INGREDIENTS: Ingredient[] = [
   { id: '1', name: 'Espinacas frescas', category: 'Verduras', expirationDays: 0, quantity: '150g' }, // expired/expiring today
@@ -17,7 +18,7 @@ export const INITIAL_INGREDIENTS: Ingredient[] = [
   { id: '9', name: 'Aceite de oliva virgen extra', category: 'Condimentos', expirationDays: 365, quantity: '1L' }
 ];
 
-export const ALL_RECIPES: Recipe[] = [
+const _LEGACY_RECIPES: Recipe[] = [
   // LOW ENERGY (Sin energía) - Cenes rápidas, máximo 15 minutos, 1 utensilio
   {
     id: 'rec_1',

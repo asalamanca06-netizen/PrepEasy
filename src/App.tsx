@@ -101,11 +101,6 @@ export default function App() {
     });
   };
 
-  // AI recipe generation (auto-triggered for unmatched expiring ingredients)
-  const [aiGeneratedRecipes, setAiGeneratedRecipes] = useState<Recipe[]>([]);
-  const [isGeneratingAIRecipe, setIsGeneratingAIRecipe] = useState(false);
-  const [aiRecipeError, setAiRecipeError] = useState<string | null>(null);
-  const generatedIngredientsRef = useRef<Set<string>>(new Set());
 
   // Planner states
   const [plannerMode, setPlannerMode] = useState<PlannerMode>(() => {
@@ -211,19 +206,7 @@ export default function App() {
     setShowAddIngredientModal(false);
     setPantryIsEmpty(false);
 
-    // If this ingredient has no matching static recipe and is expiring soon, auto-generate via AI
-    const hasStaticRecipe = ALL_RECIPES.some(r =>
-      r.ingredientsNeeded.some(n => ingredientMatches(newIng.name, n.name))
-    );
-    // Always auto-generate for expiring ingredients with no static recipe
-    // Uses OpenRouter if key available, falls back to Pollinations.ai (no auth needed)
-    if (!hasStaticRecipe && newIngExpiry <= 7 && !generatedIngredientsRef.current.has(cleanIngredient(newIng.name))) {
-      generatedIngredientsRef.current.add(cleanIngredient(newIng.name));
-      setActiveTab('inicio');
-      generateAIRecipe(newIng.name);
-    } else {
-      setActiveTab('inicio');
-    }
+    setActiveTab('inicio');
   };
 
   // Action: Complete cooking recipe
@@ -338,14 +321,6 @@ export default function App() {
     }))
   }));
 
-  // Expiring ingredients that have no matching recipe in the static catalog
-  const expiringWithNoRecipe = pantryIsEmpty ? [] : ingredients.filter(ing =>
-    ing.expirationDays <= 5 &&
-    !recipesWithPantryStatus.some(r =>
-      r.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name))
-    )
-  );
-
   // Filtered and sorted recipes: prioritize those that use the most expiring ingredients
   const activeRecipes = recipesWithPantryStatus
     .filter(r => r.energyLevel === energyLevel)
@@ -432,101 +407,6 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
       console.error('Planner error:', e);
       setPlannerStatus('error');
       setPlannerError(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const generateAIRecipe = async (targetIngredient: string) => {
-    setIsGeneratingAIRecipe(true);
-    setAiRecipeError(null);
-
-    const allIngredients = ingredients.filter(i => !pantryIsEmpty);
-    const pantryList = allIngredients.map(i => i.name).join(', ');
-    const modeLabel = energyLevel === 'low' ? 'rápida (máx 20 min)' : energyLevel === 'balanced' ? 'normal (20-35 min)' : 'elaborada (40+ min)';
-
-    const prompt = `Eres un chef experto. Crea UNA receta de cena ${modeLabel} que use "${targetIngredient}" como ingrediente principal.
-Otros ingredientes disponibles: ${pantryList}.
-Responde ÚNICAMENTE con JSON válido, sin markdown:
-{"title":"nombre","description":"1 oración","prepTime":20,"utensils":["sartén"],"steps":["paso 1","paso 2","paso 3","paso 4"],"ingredientsNeeded":[{"name":"ingrediente","required":true}]}`;
-
-    const callLLM = async (): Promise<string> => {
-      // Prefer OpenRouter if key is available
-      if (openrouterKey) {
-        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openrouterKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://prepeasy.app',
-            'X-Title': 'PrepEasy'
-          },
-          body: JSON.stringify({
-            model: 'nvidia/nemotron-3-nano-30b-a3b:free',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.7
-          })
-        });
-        if (!res.ok) throw new Error(`OpenRouter HTTP ${res.status}`);
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content ?? '';
-      }
-
-      // Fallback: Pollinations.ai — free, no auth required
-      const res = await fetch('https://text.pollinations.ai/openai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'openai',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7,
-          jsonMode: true
-        })
-      });
-      if (!res.ok) throw new Error(`Pollinations HTTP ${res.status}`);
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content ?? '';
-    };
-
-    try {
-      const text = await callLLM();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('Respuesta inválida');
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      // Derive image automatically from INGREDIENT_IMAGES (same photo scaled to 600px)
-      const cleanedName = cleanIngredient(targetIngredient);
-      const imgKey = Object.keys(INGREDIENT_IMAGES).find(k => cleanedName.includes(cleanIngredient(k)));
-      const fallbackUrls = [
-        'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1490645935-991f2537a31c?auto=format&fit=crop&q=80&w=600',
-        'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&q=80&w=600',
-      ];
-      const imageUrl = imgKey
-        ? INGREDIENT_IMAGES[imgKey].replace('w=120', 'w=600')
-        : fallbackUrls[targetIngredient.charCodeAt(0) % fallbackUrls.length];
-
-      const newRecipe: Recipe = {
-        id: `ai_${Date.now()}`,
-        title: parsed.title ?? `Receta con ${targetIngredient}`,
-        description: parsed.description ?? `Deliciosa receta usando ${targetIngredient} de tu despensa.`,
-        prepTime: parsed.prepTime ?? 20,
-        energyLevel: energyLevel,
-        imageUrl,
-        utensils: parsed.utensils ?? ['sartén'],
-        steps: parsed.steps ?? ['Prepara los ingredientes.', 'Cocina a fuego medio.', 'Sirve y disfruta.'],
-        ingredientsNeeded: (parsed.ingredientsNeeded ?? [{ name: targetIngredient, required: true }]).map((ing: any) => ({
-          name: ing.name,
-          required: ing.required ?? true,
-          inPantry: ingredients.some(pi => ingredientMatches(pi.name, ing.name))
-        }))
-      };
-
-      setAiGeneratedRecipes(prev => [newRecipe, ...prev.filter(r => r.id !== newRecipe.id)]);
-    } catch (e) {
-      setAiRecipeError(e instanceof Error ? e.message : 'Error al generar receta');
-      // Remove from generated set so it can retry
-      generatedIngredientsRef.current.delete(cleanIngredient(targetIngredient));
-    } finally {
-      setIsGeneratingAIRecipe(false);
     }
   };
 
@@ -1039,83 +919,6 @@ Responde ÚNICAMENTE con JSON válido, sin markdown:
 
                 {/* Suggestion Carousel Cards (horizontal scroll style simulating screen carousel) */}
                 <div className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x scrollbar-none -mx-5 px-5" id="suggestions-carousel">
-
-                  {/* AI-generated recipe cards — FIRST in carousel */}
-                  {aiGeneratedRecipes.map((recipe) => {
-                    const visibleIngredients = recipe.ingredientsNeeded.slice(0, 2);
-                    const extraCount = recipe.ingredientsNeeded.length - 2;
-                    const ingredientEmojis: Record<string, string> = {
-                      espinaca: '🥬', aguacate: '🥑', tomate: '🍅', huevo: '🥚', pollo: '🍗',
-                      arroz: '🍚', salmon: '🐟', salmón: '🐟', pasta: '🍝', zanahoria: '🥕',
-                      cebolla: '🧅', ajo: '🧄', limón: '🍋', queso: '🧀', leche: '🥛',
-                      aceite: '🫙', sal: '🧂', mantequilla: '🧈', hongo: '🍄', calabacín: '🥒',
-                      champiñon: '🍄', pimiento: '🫑', lechuga: '🥬', pepino: '🥒', patata: '🥔',
-                      papa: '🥔', carne: '🥩', cerdo: '🥩', atun: '🐟', camaron: '🦐'
-                    };
-                    const getIngEmoji = (name: string) => {
-                      const key = Object.keys(ingredientEmojis).find(k => name.toLowerCase().includes(k));
-                      return key ? ingredientEmojis[key] : '🌿';
-                    };
-                    return (
-                      <div
-                        key={recipe.id}
-                        onClick={() => { setSelectedRecipe(recipe); setActiveCookingRecipe(recipe); }}
-                        className="w-72 bg-white rounded-3xl overflow-hidden border border-emerald-100 flex-shrink-0 snap-center shadow-sm hover:shadow-md transition-all flex flex-col justify-between cursor-pointer ring-1 ring-emerald-200/50"
-                      >
-                        <div className="relative">
-                          <img src={recipe.imageUrl} alt={recipe.title} className="w-full h-44 object-cover" />
-                          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-xs py-1 px-2.5 rounded-full text-xs font-bold text-stone-800 shadow-xs flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-prepeasy-primary" /> {recipe.prepTime} min
-                          </div>
-                          <div className="absolute top-3 left-3 bg-prepeasy-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" /> IA
-                          </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleFavorite(recipe.id); }}
-                            className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${favorites.includes(recipe.id) ? 'bg-white text-red-500' : 'bg-white/80 text-stone-400'}`}
-                          >
-                            <Heart className="w-4 h-4" fill={favorites.includes(recipe.id) ? 'currentColor' : 'none'} />
-                          </button>
-                        </div>
-                        <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-                          <div className="space-y-2.5">
-                            <h3 className="font-serif text-lg font-bold text-prepeasy-text-primary leading-snug">{recipe.title}</h3>
-                            <div className="flex flex-wrap gap-1.5">
-                              {visibleIngredients.map((ing, i) => (
-                                <span key={i} className="text-xs font-medium py-0.5 px-2 rounded-md bg-[#EEF1ED] text-stone-600 border border-[#E2EBE0]">
-                                  {getIngEmoji(ing.name)} {ing.name}
-                                </span>
-                              ))}
-                              {extraCount > 0 && (
-                                <span className="text-xs font-medium py-0.5 px-2 rounded-md bg-[#EEF1ED] text-stone-500 border border-[#E2EBE0]">+{extraCount} más</span>
-                              )}
-                            </div>
-                          </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedRecipe(recipe); setActiveCookingRecipe(recipe); }}
-                            className="w-full bg-[#006b2d] hover:bg-prepeasy-primary-dark text-white rounded-2xl py-3 px-4 text-sm font-bold transition-all flex items-center justify-center shadow-xs"
-                          >
-                            Cocinar ahora
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Skeleton card while AI is generating — shown at the front */}
-                  {isGeneratingAIRecipe && (
-                    <div className="w-72 bg-white rounded-3xl overflow-hidden flex-shrink-0 snap-center shadow-xs border border-neutral-100 flex flex-col animate-pulse">
-                      <div className="h-44 bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center">
-                        <Sparkles className="w-8 h-8 text-stone-300" style={{ animation: 'spin 2s linear infinite' }} />
-                      </div>
-                      <div className="p-4 space-y-3">
-                        <div className="h-3 w-20 bg-stone-200 rounded-full" />
-                        <div className="h-5 w-4/5 bg-stone-200 rounded-full" />
-                        <div className="h-4 w-3/5 bg-stone-100 rounded-full" />
-                        <div className="h-11 w-full bg-stone-200 rounded-2xl mt-2" />
-                      </div>
-                    </div>
-                  )}
 
                   {activeRecipes.map((recipe, index) => {
                     const expiringCount = ingredients.filter(i => i.expirationDays <= 3).length;
