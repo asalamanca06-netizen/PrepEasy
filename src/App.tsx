@@ -1032,6 +1032,84 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni explicaciones:
 
                 {/* Suggestion Carousel Cards (horizontal scroll style simulating screen carousel) */}
                 <div className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x scrollbar-none -mx-5 px-5" id="suggestions-carousel">
+
+                  {/* AI-generated recipe cards — FIRST in carousel */}
+                  {aiGeneratedRecipes.map((recipe) => {
+                    const visibleIngredients = recipe.ingredientsNeeded.slice(0, 2);
+                    const extraCount = recipe.ingredientsNeeded.length - 2;
+                    const ingredientEmojis: Record<string, string> = {
+                      espinaca: '🥬', aguacate: '🥑', tomate: '🍅', huevo: '🥚', pollo: '🍗',
+                      arroz: '🍚', salmon: '🐟', salmón: '🐟', pasta: '🍝', zanahoria: '🥕',
+                      cebolla: '🧅', ajo: '🧄', limón: '🍋', queso: '🧀', leche: '🥛',
+                      aceite: '🫙', sal: '🧂', mantequilla: '🧈', hongo: '🍄', calabacín: '🥒',
+                      champiñon: '🍄', pimiento: '🫑', lechuga: '🥬', pepino: '🥒', patata: '🥔',
+                      papa: '🥔', carne: '🥩', cerdo: '🥩', atun: '🐟', camaron: '🦐'
+                    };
+                    const getIngEmoji = (name: string) => {
+                      const key = Object.keys(ingredientEmojis).find(k => name.toLowerCase().includes(k));
+                      return key ? ingredientEmojis[key] : '🌿';
+                    };
+                    return (
+                      <div
+                        key={recipe.id}
+                        onClick={() => { setSelectedRecipe(recipe); setActiveCookingRecipe(recipe); }}
+                        className="w-72 bg-white rounded-3xl overflow-hidden border border-emerald-100 flex-shrink-0 snap-center shadow-sm hover:shadow-md transition-all flex flex-col justify-between cursor-pointer ring-1 ring-emerald-200/50"
+                      >
+                        <div className="relative">
+                          <img src={recipe.imageUrl} alt={recipe.title} className="w-full h-44 object-cover" />
+                          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-xs py-1 px-2.5 rounded-full text-xs font-bold text-stone-800 shadow-xs flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-prepeasy-primary" /> {recipe.prepTime} min
+                          </div>
+                          <div className="absolute top-3 left-3 bg-prepeasy-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" /> IA
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleFavorite(recipe.id); }}
+                            className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${favorites.includes(recipe.id) ? 'bg-white text-red-500' : 'bg-white/80 text-stone-400'}`}
+                          >
+                            <Heart className="w-4 h-4" fill={favorites.includes(recipe.id) ? 'currentColor' : 'none'} />
+                          </button>
+                        </div>
+                        <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                          <div className="space-y-2.5">
+                            <h3 className="font-serif text-lg font-bold text-prepeasy-text-primary leading-snug">{recipe.title}</h3>
+                            <div className="flex flex-wrap gap-1.5">
+                              {visibleIngredients.map((ing, i) => (
+                                <span key={i} className="text-xs font-medium py-0.5 px-2 rounded-md bg-[#EEF1ED] text-stone-600 border border-[#E2EBE0]">
+                                  {getIngEmoji(ing.name)} {ing.name}
+                                </span>
+                              ))}
+                              {extraCount > 0 && (
+                                <span className="text-xs font-medium py-0.5 px-2 rounded-md bg-[#EEF1ED] text-stone-500 border border-[#E2EBE0]">+{extraCount} más</span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedRecipe(recipe); setActiveCookingRecipe(recipe); }}
+                            className="w-full bg-[#006b2d] hover:bg-prepeasy-primary-dark text-white rounded-2xl py-3 px-4 text-sm font-bold transition-all flex items-center justify-center shadow-xs"
+                          >
+                            Cocinar ahora
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Skeleton card while AI is generating — shown at the front */}
+                  {isGeneratingAIRecipe && (
+                    <div className="w-72 bg-white rounded-3xl overflow-hidden flex-shrink-0 snap-center shadow-xs border border-neutral-100 flex flex-col animate-pulse">
+                      <div className="h-44 bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center">
+                        <Sparkles className="w-8 h-8 text-stone-300" style={{ animation: 'spin 2s linear infinite' }} />
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div className="h-3 w-20 bg-stone-200 rounded-full" />
+                        <div className="h-5 w-4/5 bg-stone-200 rounded-full" />
+                        <div className="h-4 w-3/5 bg-stone-100 rounded-full" />
+                        <div className="h-11 w-full bg-stone-200 rounded-2xl mt-2" />
+                      </div>
+                    </div>
+                  )}
+
                   {activeRecipes.map((recipe, index) => {
                     const expiringCount = ingredients.filter(i => i.expirationDays <= 3).length;
                     const difficultyLabel = recipe.energyLevel === 'low' ? 'Fácil' : recipe.energyLevel === 'balanced' ? 'Medio' : 'Elaborado';
@@ -1114,88 +1192,6 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni explicaciones:
                     );
                   })}
 
-                  {/* Skeleton card while AI is generating */}
-                  {isGeneratingAIRecipe && (
-                    <div className="w-72 bg-white rounded-3xl overflow-hidden flex-shrink-0 snap-center shadow-xs border border-neutral-100 flex flex-col animate-pulse">
-                      <div className="h-44 bg-gradient-to-br from-stone-100 to-stone-200 relative flex items-center justify-center">
-                        <Sparkles className="w-8 h-8 text-stone-300 animate-spin" style={{ animationDuration: '2s' }} />
-                      </div>
-                      <div className="p-4 space-y-3">
-                        <div className="space-y-2">
-                          <div className="h-3 w-24 bg-stone-200 rounded-full" />
-                          <div className="h-5 w-4/5 bg-stone-200 rounded-full" />
-                          <div className="h-4 w-3/5 bg-stone-100 rounded-full" />
-                        </div>
-                        <div className="flex gap-1.5">
-                          <div className="h-6 w-20 bg-stone-100 rounded-md" />
-                          <div className="h-6 w-16 bg-stone-100 rounded-md" />
-                        </div>
-                        <div className="h-11 w-full bg-stone-200 rounded-2xl mt-2" />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* AI-generated recipe cards — appear automatically at the start */}
-                  {aiGeneratedRecipes.map((recipe) => {
-                    const visibleIngredients = recipe.ingredientsNeeded.slice(0, 2);
-                    const extraCount = recipe.ingredientsNeeded.length - 2;
-                    const ingredientEmojis: Record<string, string> = {
-                      espinaca: '🥬', aguacate: '🥑', tomate: '🍅', huevo: '🥚', pollo: '🍗',
-                      arroz: '🍚', salmon: '🐟', salmón: '🐟', pasta: '🍝', zanahoria: '🥕',
-                      cebolla: '🧅', ajo: '🧄', limón: '🍋', queso: '🧀', leche: '🥛',
-                      aceite: '🫙', sal: '🧂', mantequilla: '🧈', hongo: '🍄', calabacín: '🥒',
-                      champiñon: '🍄', pimiento: '🫑', lechuga: '🥬', pepino: '🥒', patata: '🥔',
-                      papa: '🥔', carne: '🥩', cerdo: '🥩', atun: '🐟', camaron: '🦐'
-                    };
-                    const getIngEmoji = (name: string) => {
-                      const key = Object.keys(ingredientEmojis).find(k => name.toLowerCase().includes(k));
-                      return key ? ingredientEmojis[key] : '🌿';
-                    };
-                    return (
-                      <div
-                        key={recipe.id}
-                        onClick={() => { setSelectedRecipe(recipe); setActiveCookingRecipe(recipe); }}
-                        className="w-72 bg-white rounded-3xl overflow-hidden border border-emerald-100 flex-shrink-0 snap-center shadow-sm hover:shadow-md transition-all flex flex-col justify-between cursor-pointer ring-1 ring-emerald-200/50"
-                      >
-                        <div className="relative">
-                          <img src={recipe.imageUrl} alt={recipe.title} className="w-full h-44 object-cover" />
-                          <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-xs py-1 px-2.5 rounded-full text-xs font-bold text-stone-800 shadow-xs flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-prepeasy-primary" /> {recipe.prepTime} min
-                          </div>
-                          <div className="absolute top-3 left-3 bg-prepeasy-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" /> IA
-                          </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleFavorite(recipe.id); }}
-                            className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${favorites.includes(recipe.id) ? 'bg-white text-red-500' : 'bg-white/80 text-stone-400'}`}
-                          >
-                            <Heart className="w-4 h-4" fill={favorites.includes(recipe.id) ? 'currentColor' : 'none'} />
-                          </button>
-                        </div>
-                        <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-                          <div className="space-y-2.5">
-                            <h3 className="font-serif text-lg font-bold text-prepeasy-text-primary leading-snug">{recipe.title}</h3>
-                            <div className="flex flex-wrap gap-1.5">
-                              {visibleIngredients.map((ing, i) => (
-                                <span key={i} className="text-xs font-medium py-0.5 px-2 rounded-md bg-[#EEF1ED] text-stone-600 border border-[#E2EBE0]">
-                                  {getIngEmoji(ing.name)} {ing.name}
-                                </span>
-                              ))}
-                              {extraCount > 0 && (
-                                <span className="text-xs font-medium py-0.5 px-2 rounded-md bg-[#EEF1ED] text-stone-500 border border-[#E2EBE0]">+{extraCount} más</span>
-                              )}
-                            </div>
-                          </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedRecipe(recipe); setActiveCookingRecipe(recipe); }}
-                            className="w-full bg-[#006b2d] hover:bg-prepeasy-primary-dark text-white rounded-2xl py-3 px-4 text-sm font-bold transition-all flex items-center justify-center shadow-xs"
-                          >
-                            Cocinar ahora
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
 
                 {/* Revisar mi despensa CTA */}
