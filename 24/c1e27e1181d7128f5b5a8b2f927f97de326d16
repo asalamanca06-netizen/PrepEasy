@@ -1,0 +1,20 @@
+src/recipes-data.ts
+  s_8244d6d273f01b::t_984f818a05b912 3-5,7-49,54,56,59
+  s_8244d6d273f01b::t_a3d59e6b627030 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "24c1e27e1181d7128f5b5a8b2f927f97de326d16",
+  "prompts": {},
+  "sessions": {
+    "s_8244d6d273f01b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "db24f1c8-b8fb-42ca-b37b-214548f4939b",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Carlos Andres Salamanca Venegas <carlosandres.salamancavenegas@mercadolibre.com.co>"
+    }
+  }
+}
