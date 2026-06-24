@@ -1,0 +1,79 @@
+src/recipes-data.ts
+  s_8244d6d273f01b::t_7868bbf53a6b2a 851
+  s_8244d6d273f01b::t_5b4c7c66474e01 1005
+  s_8244d6d273f01b::t_23b84d27eb96e8 852
+src/data.ts
+  s_c6f0d976cfe6d6::t_e0fc0089d7c8fc 10-18
+src/App.tsx
+  s_c6f0d976cfe6d6::t_23471e2e772b45 359-360,368-369
+  s_c6f0d976cfe6d6::t_a6dfb6b2a76aa3 897-899
+  s_c6f0d976cfe6d6::t_9f536a244c04d2 1043
+  s_c6f0d976cfe6d6::t_c747c5ca81c8cb 1091
+  s_c6f0d976cfe6d6::t_5d01475144522e 207,210,212
+  s_8244d6d273f01b::t_d6d41da2ce51e2 448-449,461
+  s_c6f0d976cfe6d6::t_65a37fd60b9af3 79
+  s_8244d6d273f01b::t_6c49fca8b76ba0 475-480,483-484,487-490,493-495,497,499-501,505,507-508
+  s_c6f0d976cfe6d6::t_31448274bbdf46 781,787
+  s_c6f0d976cfe6d6::t_bcefb2930b0527 1213-1215,1217,1233-1235,1238-1252,1256,1258-1259,1262-1263,1269,1273
+  s_c6f0d976cfe6d6::t_f19e29380f2c44 1532
+  s_c6f0d976cfe6d6::t_a3520c66015544 2023-2026,2034-2037
+  s_c6f0d976cfe6d6::t_78fc191d2e8848 86
+  s_c6f0d976cfe6d6::t_eb6a46cf42dd64 454-455
+  s_c6f0d976cfe6d6::t_23ac440069220c 2095-2106,2109-2117,2122-2125
+  s_c6f0d976cfe6d6::t_e3492497230e47 2107-2108
+  s_c6f0d976cfe6d6::t_f760354d6d7ea0 1499
+  s_c6f0d976cfe6d6::t_3628f711247650 118
+  s_c6f0d976cfe6d6::t_e67e77f8a5dfdd 178-179,181
+  s_c6f0d976cfe6d6::t_b39f043f5dfd69 250-251
+  s_c6f0d976cfe6d6::t_c97501f19b3db0 243,245,252
+  s_c6f0d976cfe6d6::t_185dd50347f16e 285-286
+  s_c6f0d976cfe6d6::t_a753bc90dad5dc 1372
+  s_c6f0d976cfe6d6::t_c4d187dd832862 2137-2140,2148-2150
+  s_c6f0d976cfe6d6::t_8128a332c91b69 808,814,823
+  s_c6f0d976cfe6d6::t_27ea521e8808b9 47-66
+  s_c6f0d976cfe6d6::t_2382ae98d35228 1216,1218-1231
+  s_c6f0d976cfe6d6::t_56fd384ec02dd1 262,265
+  s_8244d6d273f01b::t_3296b41869e1b6 447,453,456
+  s_c6f0d976cfe6d6::t_29c707831bb5d5 1473,1475,1477-1480,1482-1485
+  s_c6f0d976cfe6d6::t_fca22061d6f69a 116
+  s_c6f0d976cfe6d6::t_ad5a37926b65cb 279,287
+  s_8244d6d273f01b::t_5e56428da599cf 1476
+  s_c6f0d976cfe6d6::t_cbeb49eef815ab 1977-1988,1991-1999,2006
+  s_8244d6d273f01b::t_6136986b1c7e86 450-452,457-460
+  s_c6f0d976cfe6d6::t_37eda28a9d7ba6 117
+  s_c6f0d976cfe6d6::t_45393275eea7d6 1304-1310,1314,1327-1328
+  s_c6f0d976cfe6d6::t_0694a1e03400c2 2032,2038
+  s_c6f0d976cfe6d6::t_12be5f0b60ffed 2132,2134-2136,2141-2147,2151-2152
+  s_c6f0d976cfe6d6::t_a9897c40522958 400-401
+  s_8244d6d273f01b::t_57c741d9fa7085 491-492,498
+  s_c6f0d976cfe6d6::t_4e67a7d01e6192 2018,2020-2022,2027-2031,2033,2039-2040
+  s_c6f0d976cfe6d6::t_d3edf8784fb007 1989-1990
+  s_c6f0d976cfe6d6::t_88f62281a9aead 1272
+  s_c6f0d976cfe6d6::t_53f1a45c127c3b 481-482
+src/types.ts
+  s_c6f0d976cfe6d6::t_9c24acee107518 6-7,12,14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "27d20fdb94ffe2834333fc624f0bb88a41577cae",
+  "prompts": {},
+  "sessions": {
+    "s_8244d6d273f01b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "db24f1c8-b8fb-42ca-b37b-214548f4939b",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Carlos Andres Salamanca Venegas <carlosandres.salamancavenegas@mercadolibre.com.co>"
+    },
+    "s_c6f0d976cfe6d6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e7e1c7fe-5e81-4ed8-887f-383a2d583e97",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Carlos Andres Salamanca Venegas <carlosandres.salamancavenegas@mercadolibre.com.co>"
+    }
+  }
+}
