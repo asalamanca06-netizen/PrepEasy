@@ -114,9 +114,12 @@ export default function App() {
   });
   const [showMissingIngredients, setShowMissingIngredients] = useState(false);
   const [plannerError, setPlannerError] = useState<string | null>(null);
-  const [openrouterKey, setOpenrouterKey] = useState<string>(() =>
-    localStorage.getItem('openrouter_api_key') ?? import.meta.env.VITE_OPENROUTER_API_KEY ?? ''
-  );
+  const [openrouterKey, setOpenrouterKey] = useState<string>(() => {
+    const stored = localStorage.getItem('openrouter_api_key');
+    const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    const raw = stored ?? envKey ?? '';
+    return raw === 'undefined' || raw === 'null' ? '' : raw;
+  });
   const [showKeyInput, setShowKeyInput] = useState(false);
   const [keyDraft, setKeyDraft] = useState('');
 
@@ -405,8 +408,14 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
       localStorage.setItem('plannerMode', plannerMode);
     } catch (e) {
       console.error('Planner error:', e);
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.toLowerCase().includes('auth') || msg.toLowerCase().includes('401') || msg.toLowerCase().includes('key')) {
+        setOpenrouterKey('');
+        localStorage.removeItem('openrouter_api_key');
+        setShowKeyInput(true);
+      }
       setPlannerStatus('error');
-      setPlannerError(e instanceof Error ? e.message : String(e));
+      setPlannerError(msg);
     }
   };
 
