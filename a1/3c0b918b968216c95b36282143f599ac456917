@@ -1,0 +1,21 @@
+.github/workflows/deploy.yml
+  s_8244d6d273f01b::t_03f50a27ecc066 1-44
+vite.config.ts
+  s_8244d6d273f01b::t_4d0474c2837481 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "a13c0b918b968216c95b36282143f599ac456917",
+  "prompts": {},
+  "sessions": {
+    "s_8244d6d273f01b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "db24f1c8-b8fb-42ca-b37b-214548f4939b",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Carlos Andres Salamanca Venegas <carlosandres.salamancavenegas@mercadolibre.com.co>"
+    }
+  }
+}
