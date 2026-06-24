@@ -5,7 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    base: '/PrepEasy/',
+    base: process.env.GITHUB_ACTIONS ? '/PrepEasy/' : '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
