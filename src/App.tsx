@@ -337,86 +337,61 @@ export default function App() {
     })
     .sort((a, b) => b._score - a._score);
 
-  const generateWeeklyPlan = async () => {
+  const generateWeeklyPlan = () => {
     if (ingredients.length === 0) return;
     setPlannerStatus('loading');
     setWeeklyPlan(null);
     setShowMissingIngredients(false);
 
-    const modeLabel = plannerMode === 'rapido' ? 'Algo rápido (máx 20 min)' : plannerMode === 'sin_apuro' ? 'Sin apuro (20-40 min)' : 'Hoy me luzco (40+ min, recetas especiales)';
-    const expiring = ingredients.filter(i => i.expirationDays <= 3);
-    const rest = ingredients.filter(i => i.expirationDays > 3);
+    setTimeout(() => {
+      try {
+        const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
-    const pantryList = [
-      ...expiring.map(i => `*${i.name} (${i.quantity ?? 'cantidad libre'}) — VENCE PRONTO`),
-      ...rest.map(i => `${i.name} (${i.quantity ?? 'cantidad libre'})`)
-    ].join('\n');
+        // Filter recipes by mode
+        const pool = ALL_RECIPES.filter(r => {
+          if (plannerMode === 'rapido') return r.prepTime <= 20;
+          if (plannerMode === 'sin_apuro') return r.prepTime > 20 && r.prepTime <= 40;
+          return r.prepTime > 30;
+        });
 
-    const prompt = `Eres un chef experto. Crea un plan de 5 cenas (Lunes a Viernes) usando estos ingredientes.
-Modo de cocina: ${modeLabel}
-Prioriza ingredientes marcados con * porque vencen pronto.
+        // Score each recipe: expiring pantry ingredients score highest
+        const scored = pool.map(r => {
+          const expiringScore = ingredients.filter(i =>
+            i.expirationDays <= 3 && r.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
+          ).length * 3;
+          const pantryScore = r.ingredientsNeeded.filter(n =>
+            ingredients.some(i => ingredientMatches(i.name, n.name))
+          ).length;
+          return { recipe: r, score: expiringScore + pantryScore };
+        }).sort((a, b) => b.score - a.score);
 
-DESPENSA:
-${pantryList}
+        // Pick 5 unique recipes
+        const picked = scored.slice(0, 5).map(s => s.recipe);
+        // Pad with random from full pool if needed
+        if (picked.length < 5) {
+          const extras = ALL_RECIPES.filter(r => !picked.find(p => p.id === r.id));
+          picked.push(...extras.slice(0, 5 - picked.length));
+        }
 
-Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
-{
-  "recipes": [
-    {
-      "day": "Lunes",
-      "title": "nombre de la receta",
-      "description": "descripción breve de 1 oración",
-      "prepTime": 20,
-      "missingIngredients": ["ingrediente que falta"]
-    }
-  ]
-}`;
+        const planned: WeeklyPlan = {
+          recipes: days.map((day, i) => {
+            const r = picked[i];
+            const missing = r.ingredientsNeeded
+              .filter(n => n.required && !ingredients.some(i => ingredientMatches(i.name, n.name)))
+              .map(n => n.name);
+            return { day, title: r.title, description: r.description, prepTime: r.prepTime, missingIngredients: missing };
+          })
+        };
 
-    try {
-      const apiKey = openrouterKey;
-      if (!apiKey) throw new Error('Missing VITE_OPENROUTER_API_KEY');
-
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://prepeasy.app',
-          'X-Title': 'PrepEasy'
-        },
-        body: JSON.stringify({
-          model: 'nvidia/nemotron-3-nano-30b-a3b:free',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7
-        })
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err?.error?.message ?? `HTTP ${res.status}`);
+        setWeeklyPlan(planned);
+        setPlannerStatus('ready');
+        localStorage.setItem('weeklyPlan', JSON.stringify(planned));
+        localStorage.setItem('plannerMode', plannerMode);
+      } catch (e) {
+        setPlannerStatus('error');
+        setPlannerError(e instanceof Error ? e.message : String(e));
       }
-
-      const data = await res.json();
-      const text: string = data.choices?.[0]?.message?.content ?? '';
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON in response');
-      const parsed: WeeklyPlan = JSON.parse(jsonMatch[0]);
-      if (!parsed.recipes || parsed.recipes.length === 0) throw new Error('Empty plan');
-      setWeeklyPlan(parsed);
-      setPlannerStatus('ready');
-      localStorage.setItem('weeklyPlan', JSON.stringify(parsed));
-      localStorage.setItem('plannerMode', plannerMode);
-    } catch (e) {
-      console.error('Planner error:', e);
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg.toLowerCase().includes('auth') || msg.toLowerCase().includes('401') || msg.toLowerCase().includes('key')) {
-        setOpenrouterKey('');
-        localStorage.removeItem('openrouter_api_key');
-        setShowKeyInput(true);
-      }
-      setPlannerStatus('error');
-      setPlannerError(msg);
-    }
+    }, 600);
   };
 
   return (
@@ -1255,30 +1230,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                           : 'Genera tu plan de cenas personalizado con lo que tienes en casa.'}
                       </p>
                     </div>
-                    {ingredients.length > 0 && !openrouterKey && (
-                      <div className="w-full space-y-3 text-left">
-                        <p className="text-xs text-stone-500 text-center">Ingresa tu clave de <span className="font-semibold">OpenRouter</span> para activar la IA.</p>
-                        <input
-                          type="password"
-                          value={keyDraft}
-                          onChange={e => setKeyDraft(e.target.value)}
-                          placeholder="sk-or-v1-..."
-                          className="w-full text-sm border border-stone-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-prepeasy-primary bg-white"
-                        />
-                        <button
-                          onClick={() => {
-                            if (!keyDraft.trim()) return;
-                            localStorage.setItem('openrouter_api_key', keyDraft.trim());
-                            setOpenrouterKey(keyDraft.trim());
-                            setKeyDraft('');
-                          }}
-                          className="bg-prepeasy-primary text-white font-bold text-sm py-3 px-6 rounded-xl w-full transition-all active:scale-95"
-                        >
-                          Guardar clave
-                        </button>
-                      </div>
-                    )}
-                    {ingredients.length > 0 && openrouterKey && (
+                    {ingredients.length > 0 && (
                       <button
                         onClick={generateWeeklyPlan}
                         className="bg-prepeasy-primary text-white font-bold text-sm py-3 px-6 rounded-xl w-full transition-all active:scale-95"
@@ -1317,55 +1269,19 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                     <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
                       <UtensilsCrossed className="w-8 h-8 text-red-400" />
                     </div>
-                    {!openrouterKey || showKeyInput ? (
-                      <div className="w-full space-y-3 text-left">
-                        <div className="space-y-1">
-                          <h2 className="font-serif text-xl font-bold text-prepeasy-text-primary text-center">Configura la IA</h2>
-                          <p className="text-xs text-stone-500 text-center">Ingresa tu clave de <span className="font-semibold">OpenRouter</span> para activar el planificador.</p>
-                        </div>
-                        <input
-                          type="password"
-                          value={keyDraft}
-                          onChange={e => setKeyDraft(e.target.value)}
-                          placeholder="sk-or-v1-..."
-                          className="w-full text-sm border border-stone-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-prepeasy-primary bg-white"
-                        />
-                        <button
-                          onClick={() => {
-                            if (!keyDraft.trim()) return;
-                            localStorage.setItem('openrouter_api_key', keyDraft.trim());
-                            setOpenrouterKey(keyDraft.trim());
-                            setShowKeyInput(false);
-                            setKeyDraft('');
-                            setPlannerStatus('empty');
-                            setPlannerError(null);
-                          }}
-                          className="bg-prepeasy-primary text-white font-bold text-sm py-3 px-6 rounded-xl w-full transition-all active:scale-95"
-                        >
-                          Guardar y continuar
-                        </button>
+                    <div className="w-full space-y-3">
+                      <div className="space-y-1">
+                        <h2 className="font-serif text-xl font-bold text-prepeasy-text-primary">Algo salió mal</h2>
+                        <p className="text-xs text-stone-500">No pudimos generar tu plan. Intenta de nuevo.</p>
+                        {plannerError && <p className="text-xs text-red-400 font-mono break-all mt-1">{plannerError}</p>}
                       </div>
-                    ) : (
-                      <div className="w-full space-y-3">
-                        <div className="space-y-1">
-                          <h2 className="font-serif text-xl font-bold text-prepeasy-text-primary">Algo salió mal</h2>
-                          <p className="text-xs text-stone-500">No pudimos generar tu plan. Revisa tu conexión e intenta de nuevo.</p>
-                          {plannerError && <p className="text-xs text-red-400 font-mono break-all mt-1">{plannerError}</p>}
-                        </div>
-                        <button
-                          onClick={generateWeeklyPlan}
-                          className="bg-prepeasy-primary text-white font-bold text-sm py-3 px-6 rounded-xl w-full flex items-center justify-center gap-2 transition-all active:scale-95"
-                        >
-                          <RefreshCw className="w-4 h-4" /> Reintentar
-                        </button>
-                        <button
-                          onClick={() => { setShowKeyInput(true); setKeyDraft(''); }}
-                          className="text-xs text-stone-400 underline"
-                        >
-                          Cambiar clave de API
-                        </button>
-                      </div>
-                    )}
+                      <button
+                        onClick={generateWeeklyPlan}
+                        className="bg-prepeasy-primary text-white font-bold text-sm py-3 px-6 rounded-xl w-full flex items-center justify-center gap-2 transition-all active:scale-95"
+                      >
+                        <RefreshCw className="w-4 h-4" /> Reintentar
+                      </button>
+                    </div>
                   </div>
                 )}
 
