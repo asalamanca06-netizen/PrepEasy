@@ -106,20 +106,20 @@ export default function App() {
   const [plannerMode, setPlannerMode] = useState<PlannerMode>(() => {
     return (localStorage.getItem('plannerMode') as PlannerMode) ?? 'rapido';
   });
-  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan | null>(() => {
+  // weeklyPlan lives in localStorage — version counter forces re-render when it changes
+  const [weeklyPlanVersion, setWeeklyPlanVersion] = useState(0);
+  const weeklyPlan: WeeklyPlan | null = (() => {
     try { return JSON.parse(localStorage.getItem('weeklyPlan') ?? 'null'); } catch { return null; }
-  });
-  const [plannerLoading, setPlannerLoading] = useState(false);
+  })();
+  const setWeeklyPlan = (plan: WeeklyPlan | null) => {
+    if (plan) localStorage.setItem('weeklyPlan', JSON.stringify(plan));
+    else localStorage.removeItem('weeklyPlan');
+    setWeeklyPlanVersion(v => v + 1);
+  };
   const [plannerError, setPlannerError] = useState<string | null>(null);
   const [showMissingIngredients, setShowMissingIngredients] = useState(false);
-  // plannerStatus is fully derived — can never get out of sync with weeklyPlan
-  const plannerStatus: PlannerStatus = plannerLoading ? 'loading' : plannerError ? 'error' : weeklyPlan?.recipes?.length ? 'ready' : 'empty';
-
-  // Keep weeklyPlan synced to localStorage on every change
-  useEffect(() => {
-    if (weeklyPlan) localStorage.setItem('weeklyPlan', JSON.stringify(weeklyPlan));
-    else localStorage.removeItem('weeklyPlan');
-  }, [weeklyPlan]);
+  // plannerStatus fully derived from localStorage value — never goes stale
+  const plannerStatus: PlannerStatus = plannerError ? 'error' : weeklyPlan?.recipes?.length ? 'ready' : 'empty';
   const [openrouterKey, setOpenrouterKey] = useState<string>(() => {
     const stored = localStorage.getItem('openrouter_api_key');
     const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
