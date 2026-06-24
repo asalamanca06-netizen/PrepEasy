@@ -106,19 +106,19 @@ export default function App() {
   const [plannerMode, setPlannerMode] = useState<PlannerMode>(() => {
     return (localStorage.getItem('plannerMode') as PlannerMode) ?? 'rapido';
   });
-  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan | null>(() => {
+  const [weeklyPlan, setWeeklyPlanState] = useState<WeeklyPlan | null>(() => {
     try { return JSON.parse(localStorage.getItem('weeklyPlan') ?? 'null'); } catch { return null; }
   });
-  const [plannerStatus, setPlannerStatus] = useState<PlannerStatus>(() => {
-    try {
-      const saved = localStorage.getItem('weeklyPlan');
-      if (!saved) return 'empty';
-      const parsed = JSON.parse(saved);
-      return parsed?.recipes?.length > 0 ? 'ready' : 'empty';
-    } catch { return 'empty'; }
-  });
-  const [showMissingIngredients, setShowMissingIngredients] = useState(false);
+  const setWeeklyPlan = (plan: WeeklyPlan | null) => {
+    setWeeklyPlanState(plan);
+    if (plan) localStorage.setItem('weeklyPlan', JSON.stringify(plan));
+    else localStorage.removeItem('weeklyPlan');
+  };
+  const [plannerLoading, setPlannerLoading] = useState(false);
   const [plannerError, setPlannerError] = useState<string | null>(null);
+  const [showMissingIngredients, setShowMissingIngredients] = useState(false);
+  // plannerStatus is fully derived — can never get out of sync with weeklyPlan
+  const plannerStatus: PlannerStatus = plannerLoading ? 'loading' : plannerError ? 'error' : weeklyPlan?.recipes?.length ? 'ready' : 'empty';
   const [openrouterKey, setOpenrouterKey] = useState<string>(() => {
     const stored = localStorage.getItem('openrouter_api_key');
     const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
@@ -150,21 +150,6 @@ export default function App() {
   const warnings = pantryIsEmpty ? [] : ingredients.filter(i => i.expirationDays <= 1);
 
   // Handle Kitchen countdown timer
-  // Restore planner state when switching to planificador tab
-  useEffect(() => {
-    if (activeTab === 'planificador') {
-      try {
-        const saved = localStorage.getItem('weeklyPlan');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed?.recipes?.length > 0) {
-            setWeeklyPlan(parsed);
-            setPlannerStatus('ready');
-          }
-        }
-      } catch { /* ignore */ }
-    }
-  }, [activeTab]);
 
   useEffect(() => {
     if (isTimerRunning) {
@@ -360,8 +345,9 @@ export default function App() {
 
   const generateWeeklyPlan = () => {
     if (ingredients.length === 0) return;
-    setPlannerStatus('loading');
-    setWeeklyPlan(null);
+    setPlannerLoading(true);
+    setPlannerError(null);
+    setWeeklyPlanState(null);
     setShowMissingIngredients(false);
 
     setTimeout(() => {
@@ -405,11 +391,10 @@ export default function App() {
         };
 
         setWeeklyPlan(planned);
-        setPlannerStatus('ready');
-        localStorage.setItem('weeklyPlan', JSON.stringify(planned));
+        setPlannerLoading(false);
         localStorage.setItem('plannerMode', plannerMode);
       } catch (e) {
-        setPlannerStatus('error');
+        setPlannerLoading(false);
         setPlannerError(e instanceof Error ? e.message : String(e));
       }
     }, 600);
@@ -1225,7 +1210,7 @@ export default function App() {
                   ] as { id: PlannerMode; label: string }[]).map(m => (
                     <button
                       key={m.id}
-                      onClick={() => { if (m.id !== plannerMode) { setPlannerMode(m.id); setPlannerStatus('empty'); setWeeklyPlan(null); localStorage.removeItem('weeklyPlan'); } }}
+                      onClick={() => { if (m.id !== plannerMode) { setPlannerMode(m.id); setPlannerError(null); setPlannerLoading(false); setWeeklyPlan(null); } }}
                       className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all border ${
                         plannerMode === m.id
                           ? 'bg-prepeasy-primary text-white border-prepeasy-primary'
