@@ -811,7 +811,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="py-4 space-y-6"
+                className="py-4 space-y-3"
               >
                 
                 {/* Greeting Header */}
