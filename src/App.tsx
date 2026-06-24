@@ -1302,24 +1302,29 @@ export default function App() {
                     {/* CTA: expiring ingredients not covered by current plan */}
                     {(() => {
                       const expiringSoon = ingredients.filter(i => i.expirationDays <= 7 && !pantryIsEmpty);
-                      const uncovered = expiringSoon.filter(i =>
-                        !weeklyPlan.recipes.some(r =>
-                          ingredientMatches(i.name, r.title) ||
-                          ALL_RECIPES.find(ar => ar.title === r.title)?.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
-                        )
-                      );
-                      if (uncovered.length === 0) return null;
+                      // Find ingredients that have at least one recipe that could use them,
+                      // but that recipe is not in the current plan
+                      const uncoveredNames = expiringSoon
+                        .filter(ing => {
+                          const coveredByPlan = weeklyPlan.recipes.some(r =>
+                            ALL_RECIPES.find(ar => ar.title === r.title)?.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name))
+                          );
+                          const hasAnyRecipe = ALL_RECIPES.some(ar => ar.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name)));
+                          return !coveredByPlan && hasAnyRecipe;
+                        })
+                        .map(i => i.name);
+                      if (uncoveredNames.length === 0) return null;
                       return (
                         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
                           <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                           <div className="flex-1 space-y-2">
                             <p className="text-sm font-semibold text-amber-900">
-                              {uncovered.length === 1
-                                ? `"${uncovered[0].name}" vence pronto y no está en tu plan`
-                                : `${uncovered.length} ingredientes vencen pronto y no están en tu plan`}
+                              {uncoveredNames.length === 1
+                                ? `"${uncoveredNames[0]}" vence pronto y no está en tu plan`
+                                : `${uncoveredNames.length} ingredientes vencen pronto y no están en tu plan`}
                             </p>
                             <button
-                              onClick={() => generateWeeklyPlan(plannerMode, uncovered.map(i => i.name))}
+                              onClick={() => generateWeeklyPlan(plannerMode, uncoveredNames)}
                               className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all"
                             >
                               Regenerar incluyéndolos
