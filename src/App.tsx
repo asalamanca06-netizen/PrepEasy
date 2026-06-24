@@ -1337,7 +1337,9 @@ export default function App() {
 
                     {/* Expiring ingredients summary card */}
                     {(() => {
-                      const expiring = ingredients.filter(i => i.expirationDays <= 3 && !pantryIsEmpty);
+                      const expiring = Array.from(new Map(
+                        ingredients.filter(i => i.expirationDays <= 3 && !pantryIsEmpty).map(i => [i.name.toLowerCase(), i])
+                      ).values());
                       if (expiring.length === 0) return null;
                       const ingEmojis: Record<string, string> = {
                         espinaca: '🥬', aguacate: '🥑', tomate: '🍅', huevo: '🥚', pollo: '🍗',
@@ -1396,9 +1398,9 @@ export default function App() {
                                 const key = Object.keys(ingEmojis).find(k => name.toLowerCase().includes(k));
                                 return key ? ingEmojis[key] : '🌿';
                               };
-                              const recipeText = `${planned.title} ${planned.description}`.toLowerCase();
+                              const recipeData = ALL_RECIPES.find(ar => ar.title === planned.title);
                               const matched = expiring.filter(i =>
-                                i.name.toLowerCase().split(' ').some(word => word.length > 3 && recipeText.includes(word))
+                                recipeData?.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
                               );
                               if (matched.length === 0) return null;
                               return (
