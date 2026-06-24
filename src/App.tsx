@@ -1116,6 +1116,33 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* Warning: ingredients not in any recipe */}
+                {(() => {
+                  const noRecipe = ingredients.filter(i =>
+                    !ALL_RECIPES.some(r => r.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name)))
+                  );
+                  if (noRecipe.length === 0) return null;
+                  return (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+                      <p className="text-sm font-semibold text-amber-900 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        {noRecipe.length === 1
+                          ? `"${noRecipe[0].name}" no está en ninguna receta`
+                          : `${noRecipe.length} ingredientes no están en ninguna receta`}
+                      </p>
+                      <p className="text-xs text-amber-700">No podemos incluirlos en el planificador.</p>
+                      <button
+                        onClick={() => saveIngredients(ingredients.filter(i =>
+                          ALL_RECIPES.some(r => r.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name)))
+                        ))}
+                        className="text-xs font-bold text-amber-800 underline"
+                      >
+                        Eliminar estos {noRecipe.length} ingrediente{noRecipe.length > 1 ? 's' : ''}
+                      </button>
+                    </div>
+                  );
+                })()}
+
                 {/* STATE A: EMPTY STATE (Screenshot 2 style if empty) */}
                 {pantryIsEmpty || ingredients.length === 0 ? (
                   <div className="space-y-6">
