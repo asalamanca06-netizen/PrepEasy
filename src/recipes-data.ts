@@ -26,7 +26,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Hornea 40–45 minutos, bañando el pollo con sus jugos a mitad de cocción.',
       'Deja reposar 5 minutos antes de servir.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/tyywsw1505930373.jpg',
+    imageUrl: '/images/recipes/r_pollo_01.jpg',
     isSaved: false,
   },
   {
@@ -54,7 +54,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Cocina a fuego alto hasta que el caldo se absorba, luego baja el fuego, tapa y deja 15 min.',
       'Esponja con un tenedor, esparce cilantro y sirve caliente.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/er4d081765186828.jpg',
+    imageUrl: '/images/recipes/r_pollo_02.jpg',
     isSaved: false,
   },
   {
@@ -81,7 +81,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Tapa y cocina a fuego medio 20 minutos hasta que el pollo esté tierno.',
       'Sirve con arroz blanco y patacones.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/sypxpx1515365095.jpg',
+    imageUrl: '/images/recipes/r_pollo_03.jpg',
     isSaved: false,
   },
   {
@@ -107,7 +107,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Exprime el limón sobre el pollo y agrega el cilantro picado.',
       'Revuelve y sirve de inmediato con arroz o ensalada.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/wyxwsp1486979827.jpg',
+    imageUrl: '/images/recipes/r_pollo_04.jpg',
     isSaved: false,
   },
   {
@@ -134,7 +134,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Fríe el pollo en tandas 12–15 minutos hasta dorar. Escurre en papel absorbente.',
       'Sirve con papas fritas y ají casero.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/40r49m1763197022.jpg',
+    imageUrl: '/images/recipes/r_pollo_05.jpg',
     isSaved: false,
   },
   {
@@ -159,7 +159,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Cocina la pechuga 4–5 minutos por lado sin moverla para lograr marcas.',
       'Deja reposar 2 minutos antes de cortar y sirve con ensalada o arroz.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/qptpvt1487339892.jpg',
+    imageUrl: '/images/recipes/r_pollo_06.jpg',
     isSaved: false,
   },
   {
@@ -186,7 +186,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Incorpora el pollo desmechado al caldo y ajusta la sal.',
       'Sirve caliente con cilantro picado y arepa.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/uuuspp1511297945.jpg',
+    imageUrl: '/images/recipes/r_pollo_07.jpg',
     isSaved: false,
   },
   {
@@ -213,7 +213,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Incorpora la pasta escurrida, revuelve y ajusta la sal.',
       'Sirve caliente con queso costeño rallado encima.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/syqypv1486981727.jpg',
+    imageUrl: '/images/recipes/r_pollo_08.jpg',
     isSaved: false,
   },
   {
@@ -240,7 +240,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Tapa y cocina a fuego bajo 20 minutos hasta que el pollo esté tierno.',
       'Rectifica la sazón y sirve con arroz blanco.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/wruvqv1511880994.jpg',
+    imageUrl: '/images/recipes/r_pollo_09.jpg',
     isSaved: false,
   },
   {
@@ -267,7 +267,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Incorpora el pollo desmenuzado y los guisantes, mezcla suavemente.',
       'Deja reposar tapado 5 minutos y sirve.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/fk80jp1763280767.jpg',
+    imageUrl: '/images/recipes/r_pollo_10.jpg',
     isSaved: false,
   },
 
@@ -295,7 +295,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Para el hogao: sofríe cebolla, ajo y tomate picados hasta reducir. Sazona.',
       'Sirve los patacones con sal, hogao por encima y aguacate al lado.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/1525872624.jpg',
+    imageUrl: '/images/recipes/r_platano_01.jpg',
     isSaved: false,
   },
   {
@@ -316,7 +316,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Fríe las tajadas 2–3 minutos por lado hasta que estén doradas y caramelizadas.',
       'Escurre en papel absorbente y sirve de inmediato como acompañante.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/wuyd2h1765655837.jpg',
+    imageUrl: '/images/recipes/r_platano_02.jpg',
     isSaved: false,
   },
   {
@@ -339,7 +339,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Agrega el suero costeño y la mantequilla. Mezcla hasta obtener un puré.',
       'Sirve caliente con queso costeño rallado por encima.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/sypxpx1515365095.jpg',
+    imageUrl: '/images/recipes/r_platano_03.jpg',
     isSaved: false,
   },
   {
@@ -362,7 +362,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Coloca en la bandeja y hornea 20 minutos hasta que el plátano esté blando.',
       'Sirve caliente; puedes espolvorear canela al gusto.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/020z181619788503.jpg',
+    imageUrl: '/images/recipes/r_platano_04.jpg',
     isSaved: false,
   },
   {
@@ -388,7 +388,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Incorpora la papa y cocina 15 minutos más hasta que todo esté blando.',
       'Ajusta la sal, agrega cilantro y sirve con arroz blanco y aguacate.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/uuuspp1511297945.jpg',
+    imageUrl: '/images/recipes/r_platano_05.jpg',
     isSaved: false,
   },
   {
@@ -414,7 +414,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Saca las tostadas, cúbrelas con hogao y queso rallado.',
       'Regresa al horno 2 minutos para derretir el queso.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/sypxpx1515365095.jpg',
+    imageUrl: '/images/recipes/r_platano_06.jpg',
     isSaved: false,
   },
   {
@@ -438,7 +438,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Fríe las tajadas en aceite 2–3 minutos por lado hasta caramelizar.',
       'Sirve el arroz con las tajadas encima y pescado frito si deseas.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/wuyd2h1765655837.jpg',
+    imageUrl: '/images/recipes/r_platano_07.jpg',
     isSaved: false,
   },
   {
@@ -460,7 +460,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Retira, haz un corte y ábrelo.',
       'Coloca una cucharada de mantequilla dentro y sirve con queso al lado.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/020z181619788503.jpg',
+    imageUrl: '/images/recipes/r_platano_08.jpg',
     isSaved: false,
   },
   {
@@ -484,7 +484,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Cocina en agua hirviendo 30–35 minutos.',
       'Retira, deja enfriar ligeramente y sirve con mantequilla y queso.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/1525872624.jpg',
+    imageUrl: '/images/recipes/r_platano_09.jpg',
     isSaved: false,
   },
   {
@@ -510,7 +510,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Dora los piononos en sartén con poco aceite por todos lados.',
       'Sirve caliente como entrada o plato principal.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/sypxpx1515365095.jpg',
+    imageUrl: '/images/recipes/r_platano_10.jpg',
     isSaved: false,
   },
 
@@ -536,7 +536,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Agrega el tomate picado y el comino. Cocina 8 minutos para hacer el hogao.',
       'Escurre las papas y sírvelas enteras bañadas en el hogao caliente.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/9ya6o71780262651.jpg',
+    imageUrl: '/images/recipes/r_papa_01.jpg',
     isSaved: false,
   },
   {
@@ -558,7 +558,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Segunda fritura: sube el aceite a 190 °C y fríe 2–3 minutos hasta dorar.',
       'Escurre en papel absorbente, sala inmediatamente y sirve.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/sbx7n71587673021.jpg',
+    imageUrl: '/images/recipes/r_papa_02.jpg',
     isSaved: false,
   },
   {
@@ -584,7 +584,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Cocina 10 minutos más; la papa criolla se deshace espesando el caldo.',
       'Agrega el pollo desmechado, ajusta la sal y sirve con crema de leche, alcaparras y aguacate.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/uuuspp1511297945.jpg',
+    imageUrl: '/images/recipes/r_papa_03.jpg',
     isSaved: false,
   },
   {
@@ -607,7 +607,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Añade la leche caliente poco a poco hasta lograr consistencia cremosa.',
       'Sazona con sal y nuez moscada. Sirve inmediatamente.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/mp9z0i1782238092.jpg',
+    imageUrl: '/images/recipes/r_papa_04.jpg',
     isSaved: false,
   },
   {
@@ -634,7 +634,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Fríe en aceite caliente hasta dorar por todos lados.',
       'Escurre y sirve con ají.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/qxytrx1511304021.jpg',
+    imageUrl: '/images/recipes/r_papa_05.jpg',
     isSaved: false,
   },
   {
@@ -660,7 +660,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Rellena con mantequilla, crema, queso rallado y cebollín.',
       'Regresa al horno 5 minutos para derretir el queso.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/qpxvuq1511798906.jpg',
+    imageUrl: '/images/recipes/r_papa_06.jpg',
     isSaved: false,
   },
   {
@@ -687,7 +687,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Cocina a fuego medio 20 minutos hasta que las papas estén tiernas.',
       'Ajusta la sal y sirve con arroz blanco.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/wruvqv1511880994.jpg',
+    imageUrl: '/images/recipes/r_papa_07.jpg',
     isSaved: false,
   },
   {
@@ -712,7 +712,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Cocina a fuego medio-bajo 5 minutos, voltea con un plato y cocina 3 minutos más.',
       'Sirve en porciones con pan o arepa.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/qptpvt1487339892.jpg',
+    imageUrl: '/images/recipes/r_papa_08.jpg',
     isSaved: false,
   },
   {
@@ -738,7 +738,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Pela las papas o sírvelas con cáscara. Baña con la salsa chorreada.',
       'Esparce cilantro picado y sirve de inmediato.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/sypxpx1515365095.jpg',
+    imageUrl: '/images/recipes/r_papa_09.jpg',
     isSaved: false,
   },
   {
@@ -764,7 +764,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Cuando las papas estén blandas, aplasta algunas con cuchara para espesar.',
       'Ajusta la sazón, agrega cilantro y sirve en tazones grandes.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/er4d081765186828.jpg',
+    imageUrl: '/images/recipes/r_papa_10.jpg',
     isSaved: false,
   },
 
@@ -791,7 +791,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Mezcla el ají si deseas picante. Sazona con sal y pimienta.',
       'Sirve de inmediato con patacones, tostadas o chips.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/vdwloy1713225718.jpg',
+    imageUrl: '/images/recipes/r_aguacate_01.jpg',
     isSaved: false,
   },
   {
@@ -817,7 +817,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Combina todos los vegetales en el tazón y baña con la vinagreta.',
       'Sirve de inmediato para evitar que el aguacate se oxide.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/qrqywr1503066605.jpg',
+    imageUrl: '/images/recipes/r_aguacate_02.jpg',
     isSaved: false,
   },
   {
@@ -841,7 +841,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Parte la arepa caliente, unta con mantequilla si deseas.',
       'Agrega el aguacate aplastado y el queso blanco rallado encima.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/sbx7n71587673021.jpg',
+    imageUrl: '/images/recipes/r_aguacate_03.jpg',
     isSaved: false,
   },
   {
@@ -867,7 +867,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Rebana la pechuga y sirve sobre la crema de aguacate.',
       'Decora con cilantro fresco y rodajas de limón.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/tyywsw1505930373.jpg',
+    imageUrl: '/images/recipes/r_aguacate_04.jpg',
     isSaved: false,
   },
   {
@@ -892,7 +892,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Incorpora los cubos de aguacate suavemente.',
       'Sirve a temperatura ambiente o ligeramente frío.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/fk80jp1763280767.jpg',
+    imageUrl: '/images/recipes/r_aguacate_05.jpg',
     isSaved: false,
   },
   {
@@ -918,7 +918,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Ajusta la sal y agrega más agua si quieres consistencia más líquida.',
       'Refrigera 10 minutos y sirve con cilantro y un chorrito de aceite de oliva.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/uuuspp1511297945.jpg',
+    imageUrl: '/images/recipes/r_aguacate_06.jpg',
     isSaved: false,
   },
   {
@@ -944,7 +944,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Coloca la lechuga, el pollo desmenuzado y el tomate picado.',
       'Enrolla firmemente y corta en diagonal.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/020z181619788503.jpg',
+    imageUrl: '/images/recipes/r_aguacate_07.jpg',
     isSaved: false,
   },
   {
@@ -970,7 +970,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Sazona con sal y más limón al gusto.',
       'Deja reposar 5 minutos para que los sabores se integren.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/1525872624.jpg',
+    imageUrl: '/images/recipes/r_aguacate_08.jpg',
     isSaved: false,
   },
   {
@@ -995,7 +995,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Retira del fuego cuando estén casi cuajados (terminan de cocinarse con el calor residual).',
       'Sirve sobre pan tostado o arepa con aguacate en rodajas y cilantro.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/wyxwsp1486979827.jpg',
+    imageUrl: '/images/recipes/r_aguacate_09.jpg',
     isSaved: false,
   },
   {
@@ -1022,7 +1022,7 @@ export const ALL_RECIPES: Recipe[] = [
       'Incorpora el aguacate en cubos justo antes de servir para que no se rompa.',
       'Sirve frío con patacones o tostadas.',
     ],
-    imageUrl: 'https://www.themealdb.com/images/media/meals/qpxvuq1511798906.jpg',
+    imageUrl: '/images/recipes/r_aguacate_10.jpg',
     isSaved: false,
   },
 ];

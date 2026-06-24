@@ -1049,7 +1049,9 @@ export default function App() {
                       espinaca: '🥬', aguacate: '🥑', tomate: '🍅', huevo: '🥚', pollo: '🍗',
                       arroz: '🍚', salmon: '🐟', salmón: '🐟', pasta: '🍝', zanahoria: '🥕',
                       cebolla: '🧅', ajo: '🧄', limón: '🍋', queso: '🧀', leche: '🥛',
-                      aceite: '🫙', sal: '🧂', mantequilla: '🧈', hongo: '🍄', calabacín: '🥒'
+                      aceite: '🫙', sal: '🧂', mantequilla: '🧈', hongo: '🍄', calabacín: '🥒',
+                      platano: '🍌', plátano: '🍌', papa: '🥔', chorizo: '🌭', camarón: '🦐',
+                      camaron: '🦐', yuca: '🫚', costilla: '🥩', carne: '🥩', cerdo: '🥩',
                     };
                     const getIngEmoji = (name: string) => {
                       const key = Object.keys(ingredientEmojis).find(k => name.toLowerCase().includes(k));
