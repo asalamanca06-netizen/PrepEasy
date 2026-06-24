@@ -3,13 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export type IngredientPriority = 'sin_prisa' | 'esta_semana' | 'usar_pronto' | 'usar_hoy';
+
 export interface Ingredient {
   id: string;
   name: string;
   category: 'Verduras' | 'Carnes' | 'Lácteos' | 'Granos' | 'Condimentos' | 'Otros';
-  expirationDays: number; // days remaining
+  priority: IngredientPriority;
   quantity?: string;
-  isNearingExpiry?: boolean; 
+  isNearingExpiry?: boolean;
 }
 
 export interface Recipe {

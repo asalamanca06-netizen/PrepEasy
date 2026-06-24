@@ -7,15 +7,15 @@ import { Ingredient, Recipe, CookedHistory } from './types';
 export { ALL_RECIPES } from './recipes-data';
 
 export const INITIAL_INGREDIENTS: Ingredient[] = [
-  { id: '1', name: 'Espinacas frescas', category: 'Verduras', expirationDays: 0, quantity: '150g' }, // expired/expiring today
-  { id: '2', name: 'Aguacate maduro', category: 'Verduras', expirationDays: 1, quantity: '1 ud' }, // expiring in 1 day
-  { id: '3', name: 'Huevo campero', category: 'Carnes', expirationDays: 2, quantity: '6 uds' }, // expiring in 2 days
-  { id: '4', name: 'Pechuga de pollo', category: 'Carnes', expirationDays: 5, quantity: '400g' },
-  { id: '5', name: 'Tomate cherry', category: 'Verduras', expirationDays: 4, quantity: '200g' },
-  { id: '6', name: 'Yogur griego', category: 'Lácteos', expirationDays: 3, quantity: '2 uds' },
-  { id: '7', name: 'Arroz arborio', category: 'Granos', expirationDays: 180, quantity: '500g' },
-  { id: '8', name: 'Parmesano', category: 'Lácteos', expirationDays: 14, quantity: '100g' },
-  { id: '9', name: 'Aceite de oliva virgen extra', category: 'Condimentos', expirationDays: 365, quantity: '1L' }
+  { id: '1', name: 'Espinacas frescas',          category: 'Verduras',    priority: 'usar_hoy',    quantity: '150g',  isNearingExpiry: true },
+  { id: '2', name: 'Aguacate maduro',             category: 'Verduras',    priority: 'usar_hoy',    quantity: '1 ud',  isNearingExpiry: true },
+  { id: '3', name: 'Huevo campero',               category: 'Carnes',      priority: 'usar_pronto', quantity: '6 uds', isNearingExpiry: true },
+  { id: '4', name: 'Pechuga de pollo',            category: 'Carnes',      priority: 'usar_pronto', quantity: '400g',  isNearingExpiry: true },
+  { id: '5', name: 'Tomate cherry',               category: 'Verduras',    priority: 'usar_pronto', quantity: '200g',  isNearingExpiry: true },
+  { id: '6', name: 'Yogur griego',                category: 'Lácteos',     priority: 'esta_semana', quantity: '2 uds' },
+  { id: '7', name: 'Arroz arborio',               category: 'Granos',      priority: 'sin_prisa',   quantity: '500g' },
+  { id: '8', name: 'Parmesano',                   category: 'Lácteos',     priority: 'esta_semana', quantity: '100g' },
+  { id: '9', name: 'Aceite de oliva virgen extra', category: 'Condimentos', priority: 'sin_prisa',  quantity: '1L' },
 ];
 
 const _LEGACY_RECIPES: Recipe[] = [

@@ -44,7 +44,26 @@ import {
   Heart
 } from 'lucide-react';
 
-import { Ingredient, Recipe, CookedHistory, AppState, ActiveTab, EnergyLevel, PlannerMode, PlannerStatus, WeeklyPlan, PlannedRecipe } from './types';
+import { Ingredient, IngredientPriority, Recipe, CookedHistory, AppState, ActiveTab, EnergyLevel, PlannerMode, PlannerStatus, WeeklyPlan, PlannedRecipe } from './types';
+
+const PRIORITY_DAYS: Record<IngredientPriority, number> = {
+  usar_hoy: 1,
+  usar_pronto: 3,
+  esta_semana: 7,
+  sin_prisa: 30,
+};
+const priorityDays = (p: IngredientPriority) => PRIORITY_DAYS[p];
+
+const migrateIngredient = (raw: any): Ingredient => {
+  if (raw.priority) return raw as Ingredient;
+  const days = raw.expirationDays ?? 7;
+  const priority: IngredientPriority =
+    days <= 1 ? 'usar_hoy' :
+    days <= 3 ? 'usar_pronto' :
+    days <= 7 ? 'esta_semana' : 'sin_prisa';
+  const { expirationDays: _removed, ...rest } = raw;
+  return { ...rest, priority };
+};
 import { INITIAL_INGREDIENTS, ALL_RECIPES, INITIAL_HISTORY, INGREDIENT_IMAGES, CATEGORY_FALLBACK_IMAGES } from './data';
 
 export default function App() {
@@ -57,15 +76,14 @@ export default function App() {
   const [ingredients, setIngredients] = useState<Ingredient[]>(() => {
     try {
       const saved = localStorage.getItem('pantry_ingredients');
-      return saved ? JSON.parse(saved) : [];
+      return saved ? (JSON.parse(saved) as any[]).map(migrateIngredient) : [];
     } catch { return []; }
   });
   const saveIngredients = (updated: Ingredient[]) => {
-    // Deduplicate by normalized name, keep the one with fewest expirationDays (most urgent)
     const seen = new Map<string, Ingredient>();
     for (const ing of updated) {
       const key = cleanIngredient(ing.name);
-      if (!seen.has(key) || ing.expirationDays < seen.get(key)!.expirationDays) {
+      if (!seen.has(key) || priorityDays(ing.priority) < priorityDays(seen.get(key)!.priority)) {
         seen.set(key, ing);
       }
     }
@@ -95,9 +113,9 @@ export default function App() {
   // New entry state
   const [newIngName, setNewIngName] = useState('');
   const [newIngCategory, setNewIngCategory] = useState<'Verduras' | 'Carnes' | 'Lácteos' | 'Granos' | 'Condimentos' | 'Otros'>('Verduras');
-  const [newIngExpiry, setNewIngExpiry] = useState<number>(5);
-  const [newIngQtyAmount, setNewIngQtyAmount] = useState<number | ''>('');
-  const [newIngQtyUnit, setNewIngQtyUnit] = useState<'g' | 'kg' | 'ml' | 'L' | 'unidades'>('g');
+  const [newIngPriority, setNewIngPriority] = useState<IngredientPriority>('usar_pronto');
+  const [newIngQtyAmount, setNewIngQtyAmount] = useState<number | ''>(1);
+  const [newIngQtyUnit, setNewIngQtyUnit] = useState<'g' | 'kg' | 'ml' | 'L' | 'unidades'>('unidades');
   const [ingFormErrors, setIngFormErrors] = useState<{ name?: string; qty?: string }>({});
 
   // Favorites
@@ -157,10 +175,10 @@ export default function App() {
   ];
 
   // Auto-calculated fields
-  const expiringIngredientsCount = ingredients.filter(i => !pantryIsEmpty && i.expirationDays <= 3).length;
-  
+  const expiringIngredientsCount = ingredients.filter(i => !pantryIsEmpty && (i.priority === 'usar_hoy' || i.priority === 'usar_pronto')).length;
+
   // Alarmist Warnings
-  const warnings = pantryIsEmpty ? [] : ingredients.filter(i => i.expirationDays <= 1);
+  const warnings = pantryIsEmpty ? [] : ingredients.filter(i => i.priority === 'usar_hoy');
 
   // Handle Kitchen countdown timer
 
@@ -186,12 +204,12 @@ export default function App() {
     };
   }, [isTimerRunning]);
 
-  // Auto-regenerate plan when entering planificador tab with ingredients
+  // Auto-regenerate plan when tab, ingredients, or mode changes
   useEffect(() => {
     if (activeTab === 'planificador' && ingredients.length > 0) {
-      generateWeeklyPlan();
+      generateWeeklyPlan(plannerMode);
     }
-  }, [activeTab]);
+  }, [activeTab, ingredients, plannerMode]);
 
   const startKitchenTimer = (seconds: number) => {
     setTimerSeconds(seconds);
@@ -222,15 +240,16 @@ export default function App() {
       id: Date.now().toString(),
       name: newIngName.trim(),
       category: newIngCategory,
-      expirationDays: newIngExpiry,
+      priority: newIngPriority,
       quantity: `${newIngQtyAmount} ${newIngQtyUnit}`,
-      isNearingExpiry: newIngExpiry <= 2
+      isNearingExpiry: newIngPriority === 'usar_hoy' || newIngPriority === 'usar_pronto',
     };
     const updatedIngredients = [newIng, ...ingredients];
     saveIngredients(updatedIngredients);
     setNewIngName('');
-    setNewIngQtyAmount('');
-    setNewIngQtyUnit('g');
+    setNewIngQtyAmount(1);
+    setNewIngQtyUnit('unidades');
+    setNewIngPriority('usar_pronto');
     setIngFormErrors({});
     setShowAddIngredientModal(false);
     setPantryIsEmpty(false);
@@ -240,10 +259,10 @@ export default function App() {
   const openEditIngredient = (ing: Ingredient) => {
     setEditingIngredient(ing);
     setNewIngName(ing.name);
-    const parts = ing.quantity.split(' ');
+    const parts = ing.quantity?.split(' ') ?? [];
     setNewIngQtyAmount(parseFloat(parts[0]) || 1);
     setNewIngQtyUnit((parts[1] as any) || 'unidades');
-    setNewIngExpiry(ing.expirationDays);
+    setNewIngPriority(ing.priority ?? 'usar_pronto');
     setNewIngCategory(ing.category as any);
     setIngFormErrors({});
   };
@@ -257,13 +276,15 @@ export default function App() {
     if (Object.keys(errors).length > 0) { setIngFormErrors(errors); return; }
     const updated = ingredients.map(i =>
       i.id === editingIngredient.id
-        ? { ...i, name: newIngName.trim(), quantity: `${newIngQtyAmount} ${newIngQtyUnit}`, expirationDays: newIngExpiry, category: newIngCategory, isNearingExpiry: newIngExpiry <= 2 }
+        ? { ...i, name: newIngName.trim(), quantity: `${newIngQtyAmount} ${newIngQtyUnit}`, priority: newIngPriority, category: newIngCategory, isNearingExpiry: newIngPriority === 'usar_hoy' || newIngPriority === 'usar_pronto' }
         : i
     );
     saveIngredients(updated);
     setEditingIngredient(null);
     setNewIngName('');
-    setNewIngQtyAmount('');
+    setNewIngQtyAmount(1);
+    setNewIngQtyUnit('unidades');
+    setNewIngPriority('usar_pronto');
     setIngFormErrors({});
   };
 
@@ -335,8 +356,8 @@ export default function App() {
         const key = Object.keys(categoryMap).find(k => name.toLowerCase().includes(k));
         return key ? categoryMap[key] : 'Otros';
       };
-      const expiryMap: Record<string, number> = {
-        Carnes: 3, Verduras: 5, Lácteos: 7, Granos: 30, Condimentos: 90, Otros: 10
+      const priorityMap: Record<string, IngredientPriority> = {
+        Carnes: 'usar_pronto', Verduras: 'usar_pronto', Lácteos: 'esta_semana', Granos: 'sin_prisa', Condimentos: 'sin_prisa', Otros: 'esta_semana'
       };
       const scanned: Ingredient[] = shuffled.map((name, i) => {
         const category = getCategory(name);
@@ -344,7 +365,8 @@ export default function App() {
           id: `scan_${Date.now()}_${i}`,
           name,
           category,
-          expirationDays: expiryMap[category] ?? 7,
+          priority: priorityMap[category] ?? 'esta_semana',
+          isNearingExpiry: priorityMap[category] === 'usar_pronto' || priorityMap[category] === 'usar_hoy',
           quantity: category === 'Carnes' ? '300g' : category === 'Granos' ? '500g' : '1 ud'
         };
       });
@@ -375,8 +397,8 @@ export default function App() {
     ).length;
 
     if (inPantryTotal === needed.length) {
-      const expiring = ingredients.filter(i => i.expirationDays <= 3).length;
-      const label = expiring > 0 ? `+${expiring} por vencer` : 'Tienes todo en casa';
+      const expiring = ingredients.filter(i => i.priority === 'usar_hoy' || i.priority === 'usar_pronto').length;
+      const label = expiring > 0 ? `+${expiring} para usar pronto` : 'Tienes todo en casa';
       return { text: label, style: 'text-prepeasy-primary bg-prepeasy-primary-light border-green-200' };
     } else if (inPantryTotal > 0) {
       return { text: 'Tienes todo en casa', style: 'text-prepeasy-primary bg-prepeasy-primary-light border-green-200' };
@@ -422,18 +444,21 @@ export default function App() {
     }))
   }));
 
-  // Filtered and sorted recipes: prioritize those that use the most expiring ingredients
-  const activeRecipes = recipesWithPantryStatus
-    .filter(r => r.energyLevel === energyLevel)
-    .map(recipe => {
-      const expiringScore = ingredients.filter(ing =>
-        ing.expirationDays <= 3 &&
-        recipe.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name))
-      ).length * 2;
-      const pantryScore = recipe.ingredientsNeeded.filter(n => n.inPantry).length;
-      return { ...recipe, _score: expiringScore + pantryScore };
-    })
-    .sort((a, b) => b._score - a._score);
+  // Sort home suggestions: best single expiring ingredient score wins (max, not sum)
+  const activeRecipes = (() => {
+    const pool = recipesWithPantryStatus.filter(r => r.energyLevel === energyLevel);
+    const poolCoverage = (ingName: string) =>
+      pool.filter(r => r.ingredientsNeeded.some(n => ingredientMatches(ingName, n.name))).length || 1;
+    const recipeScore = (r: typeof pool[number]) => {
+      const urgencyScores = ingredients
+        .filter(i => i.priority !== 'sin_prisa' && r.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name)))
+        .map(i => (8 - priorityDays(i.priority)) * (10 / poolCoverage(i.name)));
+      const expiringScore = urgencyScores.length > 0 ? Math.max(...urgencyScores) : 0;
+      const pantryScore = r.ingredientsNeeded.filter(n => n.inPantry).length;
+      return expiringScore * 10 + pantryScore;
+    };
+    return [...pool].sort((a, b) => recipeScore(b) - recipeScore(a));
+  })();
 
   const generateWeeklyPlan = (mode: PlannerMode = plannerMode, priorityIngredients: string[] = []) => {
     if (ingredients.length === 0) return;
@@ -447,45 +472,42 @@ export default function App() {
         if (mode === 'sin_apuro') return r.prepTime > 20 && r.prepTime <= 40;
         return r.prepTime > 30;
       });
-      const scored = pool.map(r => {
-        const expiringScore = ingredients.filter(i =>
-          i.expirationDays <= 3 && r.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
-        ).length * 3;
-        const pantryScore = r.ingredientsNeeded.filter(n =>
+      // Score: best single expiring ingredient wins (max, not sum) weighted by rarity in pool
+      const poolCoverage = (ingName: string) =>
+        pool.filter(r => r.ingredientsNeeded.some(n => ingredientMatches(ingName, n.name))).length || 1;
+
+      const recipeScore = (r: typeof pool[0]) => {
+        const urgencyScores = ingredients
+          .filter(i => i.priority !== 'sin_prisa' && r.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name)))
+          .map(i => (8 - priorityDays(i.priority)) * (10 / poolCoverage(i.name)));
+        const expiringScore = urgencyScores.length > 0 ? Math.max(...urgencyScores) : 0;
+        const pScore = r.ingredientsNeeded.filter(n =>
           ingredients.some(i => ingredientMatches(i.name, n.name))
         ).length;
-        // Heavily boost recipes that use forced priority ingredients (from CTA)
-        const priorityScore = priorityIngredients.filter(name =>
-          r.ingredientsNeeded.some(n => ingredientMatches(name, n.name))
-        ).length * 10;
-        return { recipe: r, score: expiringScore + pantryScore + priorityScore };
-      }).sort((a, b) => b.score - a.score);
+        const priorityBoost = priorityIngredients.some(p =>
+          r.ingredientsNeeded.some(n => ingredientMatches(p, n.name))
+        ) ? 200 : 0;
+        return expiringScore * 10 + pScore + priorityBoost;
+      };
 
-      // Pick diversified top 5: max 2 recipes per ingredient category (id prefix)
-      const picked: typeof scored[0]['recipe'][] = [];
+      // Pick diversified top 5: max 2 per ingredient category, sorted by score
+      const sorted = [...pool].sort((a, b) => recipeScore(b) - recipeScore(a));
+      const picked: typeof pool[number][] = [];
       const categoryCount: Record<string, number> = {};
-      for (const { recipe } of scored) {
-        const category = recipe.id.split('_')[1] ?? recipe.id; // e.g. 'aguacate', 'pollo', 'papa', 'platano'
-        if ((categoryCount[category] ?? 0) < 2) {
-          picked.push(recipe);
-          categoryCount[category] = (categoryCount[category] ?? 0) + 1;
+      for (const r of sorted) {
+        const cat = r.id.split('_')[1] ?? r.id;
+        if ((categoryCount[cat] ?? 0) < 2) {
+          picked.push(r);
+          categoryCount[cat] = (categoryCount[cat] ?? 0) + 1;
         }
         if (picked.length === 5) break;
       }
-      // Fill remaining slots if pool was too small
+      // Fill remaining if pool too small
       if (picked.length < 5) {
-        const extras = pool.filter(r => !picked.find(p => p.id === r.id));
+        const usedIds = new Set(picked.map(r => r.id));
+        const extras = pool.filter(r => !usedIds.has(r.id));
         picked.push(...extras.slice(0, 5 - picked.length));
       }
-
-      // Sort picked recipes by urgency: recipes using the soonest-expiring ingredient go first
-      const getUrgency = (r: typeof picked[0]) => {
-        const matches = ingredients.filter(i =>
-          i.expirationDays <= 7 && r.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
-        );
-        return matches.length > 0 ? Math.min(...matches.map(i => i.expirationDays)) : 999;
-      };
-      picked.sort((a, b) => getUrgency(a) - getUrgency(b));
 
       const planned: WeeklyPlan = {
         recipes: days.map((day, i) => {
@@ -756,13 +778,13 @@ export default function App() {
                   {/* Motivo de recomendación */}
                   {(() => {
                     const expiringMatches = ingredients.filter(i =>
-                      i.expirationDays <= 3 && !pantryIsEmpty &&
+                      (i.priority === 'usar_hoy' || i.priority === 'usar_pronto') && !pantryIsEmpty &&
                       activeCookingRecipe.ingredientsNeeded.some(n =>
                         ingredientMatches(i.name, n.name)
                       )
                     );
                     if (expiringMatches.length > 0) {
-                      return <p className="text-sm text-prepeasy-text-secondary">Ideal para usar {expiringMatches.map(i => i.name.split(' ')[0]).join(' y ')} antes de que se echen a perder.</p>;
+                      return <p className="text-sm text-prepeasy-text-secondary">Ideal para usar {expiringMatches.map(i => i.name.split(' ')[0]).join(' y ')} que tienes marcados para pronto.</p>;
                     }
                     return <p className="text-sm text-prepeasy-text-secondary">Usa ingredientes de tu despensa en menos de {activeCookingRecipe.prepTime} minutos.</p>;
                   })()}
@@ -783,12 +805,13 @@ export default function App() {
                     return key ? ingEmojis[key] : '🌿';
                   };
                   const expiringMatches = ingredients.filter(i =>
-                    i.expirationDays <= 3 && !pantryIsEmpty &&
+                    (i.priority === 'usar_hoy' || i.priority === 'usar_pronto') && !pantryIsEmpty &&
                     activeCookingRecipe.ingredientsNeeded.some(n =>
                       ingredientMatches(i.name, n.name)
                     )
                   );
                   if (expiringMatches.length === 0) return null;
+                  const priorityLabel = (p: IngredientPriority) => p === 'usar_hoy' ? '· usar hoy' : '· usar pronto';
                   return (
                     <div className="bg-prepeasy-primary-light border border-green-200 rounded-2xl p-4 space-y-2.5">
                       <span className="text-sm font-bold text-prepeasy-primary flex items-center gap-1.5">🥬 Ingredientes que aprovecharás</span>
@@ -797,9 +820,7 @@ export default function App() {
                           <div key={i} className="flex items-center gap-2 text-sm text-prepeasy-text-primary">
                             <span>{getEmoji(ing.name)}</span>
                             <span className="font-medium">{ing.name}</span>
-                            <span className="text-xs text-stone-500">
-                              {ing.expirationDays === 0 ? '· vence hoy' : ing.expirationDays === 1 ? '· vence mañana' : `· vence en ${ing.expirationDays} días`}
-                            </span>
+                            <span className="text-xs text-stone-500">{priorityLabel(ing.priority)}</span>
                           </div>
                         ))}
                       </div>
@@ -873,9 +894,9 @@ export default function App() {
                         ingredientMatches(i.name, ing.name)
                       );
                       const expiryLabel = pantryMatch
-                        ? pantryMatch.expirationDays === 0 ? 'Vence hoy'
-                          : pantryMatch.expirationDays === 1 ? 'Vence mañana'
-                          : pantryMatch.expirationDays <= 3 ? `Vence en ${pantryMatch.expirationDays} días`
+                        ? pantryMatch.priority === 'usar_hoy' ? 'Usar hoy'
+                          : pantryMatch.priority === 'usar_pronto' ? 'Usar pronto'
+                          : pantryMatch.priority === 'esta_semana' ? 'Esta semana'
                           : null
                         : null;
                       return (
@@ -1019,7 +1040,7 @@ export default function App() {
 
                   {activeRecipes.map((recipe, index) => {
                     const expiringCount = !pantryIsEmpty ? ingredients.filter(i =>
-                      i.expirationDays <= 3 && recipe.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
+                      (i.priority === 'usar_hoy' || i.priority === 'usar_pronto') && recipe.ingredientsNeeded.some(n => ingredientMatches(i.name, n.name))
                     ).length : 0;
                     const difficultyLabel = recipe.energyLevel === 'low' ? 'Fácil' : recipe.energyLevel === 'balanced' ? 'Medio' : 'Elaborado';
                     const visibleIngredients = recipe.ingredientsNeeded.slice(0, 2);
@@ -1067,7 +1088,7 @@ export default function App() {
                             {/* Expiring tag — ingredientes de esta receta que vencen pronto */}
                             {expiringCount > 0 && (
                               <span className="inline-flex items-center text-xs font-bold text-amber-700">
-                                Aprovecha {expiringCount} ingrediente{expiringCount > 1 ? 's' : ''} por vencer
+                                Aprovecha {expiringCount} ingrediente{expiringCount > 1 ? 's' : ''}
                               </span>
                             )}
 
@@ -1189,58 +1210,67 @@ export default function App() {
                 {/* STATE A: EMPTY STATE (Screenshot 2 style if empty) */}
                 {pantryIsEmpty || ingredients.length === 0 ? (
                   <div className="space-y-6">
-                    {/* Device cupboard/Cabinet SVG and mint artwork */}
-                    <div className="bg-white rounded-3xl p-6 border border-neutral-100 shadow-sm flex flex-col items-center justify-center min-h-[280px]">
-                      
-                      {/* High fidelity Cabinet outline simulation with mint sprig */}
-                      <div className="w-full max-w-[200px] aspect-square rounded-2xl bg-stone-50/50 border border-stone-200/60 p-4 relative flex flex-col justify-between overflow-hidden shadow-xs">
-                        
-                        {/* Shleves lines */}
-                        <div className="absolute top-1/3 left-0 right-0 h-[2px] bg-stone-200"></div>
-                        <div className="absolute top-2/3 left-0 right-0 h-[2px] bg-stone-200"></div>
-                        
-                        {/* Faint refrigerator icon */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                          <ShoppingBag className="w-24 h-24 text-prepeasy-primary" />
-                        </div>
+                    {/* Empty state card */}
+                    <div className="bg-white rounded-3xl p-6 border border-neutral-100 shadow-sm flex flex-col items-center">
 
-                        {/* Single mint leaf sprig on bottom shelf matching Screenshot 2 perfectly */}
-                        <div className="mx-auto mt-auto relative z-10 p-1 flex flex-col items-center">
-                          <svg className="w-12 h-12 text-[#2D9D4E] animate-pulse" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12,2C12,2 6,6 6,12C6,16 10,18 12,21C14,18 18,16 18,12C18,6 12,2 12,2M12,18.5C11,17 8.5,15.5 8.5,12C8.5,8.5 12,5.5 12,5.5C12,5.5 15.5,8.5 15.5,12C15.5,15.5 13,17 12,18.5Z"/>
-                          </svg>
-                          <span className="text-xs font-mono font-bold text-prepeasy-primary mt-1 opacity-80">Hoja de albahaca</span>
-                        </div>
-                      </div>
+                      {/* Refrigerator illustration */}
+                      <svg viewBox="0 0 160 200" className="w-36 h-auto mt-2" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="20" y="10" width="120" height="180" rx="14" fill="#F0F4F1" stroke="#C8D9CC" strokeWidth="2.5"/>
+                        <rect x="20" y="10" width="120" height="62" rx="14" fill="#E3EDE6" stroke="#C8D9CC" strokeWidth="2.5"/>
+                        <rect x="20" y="70" width="120" height="4" rx="2" fill="#C8D9CC"/>
+                        <rect x="30" y="112" width="100" height="3" rx="1.5" fill="#D5E3D9"/>
+                        <rect x="30" y="148" width="100" height="3" rx="1.5" fill="#D5E3D9"/>
+                        <rect x="62" y="36" width="36" height="7" rx="3.5" fill="#A8C4AF"/>
+                        <rect x="62" y="105" width="36" height="7" rx="3.5" fill="#A8C4AF"/>
+                        <circle cx="134" cy="24" r="3" fill="#C8D9CC"/>
+                        <circle cx="134" cy="62" r="3" fill="#C8D9CC"/>
+                        <circle cx="134" cy="80" r="3" fill="#C8D9CC"/>
+                        <circle cx="134" cy="182" r="3" fill="#C8D9CC"/>
+                        <line x1="44" y1="130" x2="116" y2="130" stroke="#E0EBE3" strokeWidth="1.5" strokeDasharray="4 3"/>
+                        <line x1="44" y1="165" x2="116" y2="165" stroke="#E0EBE3" strokeWidth="1.5" strokeDasharray="4 3"/>
+                      </svg>
 
-                      {/* Heading matches Screen 2 precisely */}
-                      <h3 className="font-serif text-lg font-bold text-[#1F6B35] text-center mt-4">Tu despensa está vacía</h3>
-                      <p className="text-xs text-stone-500 text-center leading-relaxed max-w-xs mt-1">
-                        Registra los ingredientes que tienes en casa para que podamos recomendarte cenas rápidas sin salir a comprar.
+                      <h3 className="font-serif text-xl font-bold text-stone-800 text-center mt-5">Cuéntanos qué tienes en casa</h3>
+                      <p className="text-sm text-stone-500 text-center leading-relaxed mt-2 max-w-xs">
+                        Añade tus ingredientes y descubre recetas hechas para ti.
                       </p>
 
-                      <button 
+                      {/* Benefits list */}
+                      <ul className="mt-4 space-y-2 w-full max-w-xs">
+                        {[
+                          'Recibe recetas personalizadas',
+                          'Aprovecha ingredientes antes de que se desperdicien',
+                          'Planifica tus comidas de la semana',
+                        ].map(benefit => (
+                          <li key={benefit} className="flex items-start gap-2 text-sm text-stone-600">
+                            <span className="text-prepeasy-primary font-bold mt-0.5">✓</span>
+                            <span>{benefit}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <button
                         onClick={() => setShowAddIngredientModal(true)}
                         className="mt-6 bg-[#006b2d] hover:bg-prepeasy-primary-dark text-white rounded-full py-3.5 px-6 text-sm font-bold transition-all shadow-md hover:shadow-lg w-full flex items-center justify-center gap-1.5"
                       >
-                        <PlusCircle className="w-4 h-4" /> Agregar ingredientes ahora
+                        <PlusCircle className="w-4 h-4" /> Añadir mi primer ingrediente
                       </button>
-                      
-                      <span className="text-xs tracking-wider font-bold text-[#A8A8A8] mt-3">Toma solo 2 minutos</span>
+
+                      <span className="text-xs text-[#A8A8A8] mt-3">⏱️ Solo toma 2 minutos</span>
                     </div>
 
-                    {/* Scan receipt button matches screen 2 */}
-                    <div 
+                    {/* CTA secundario: escanear recibo */}
+                    <div
                       onClick={handleReceiptScan}
                       className="bg-[#D4F4DD] p-4 rounded-2xl border border-emerald-200/80 cursor-pointer hover:bg-opacity-90 shadow-xs flex items-center justify-between"
                     >
                       <div className="flex gap-3 items-center">
                         <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-prepeasy-primary">
-                          <Camera className="w-6 h-6 animate-pulse" />
+                          <Camera className="w-6 h-6" />
                         </div>
                         <div>
-                          <h4 className="text-xs font-bold text-prepeasy-primary-dark tracking-wider">Escanear recibo</h4>
-                          <p className="text-xs text-[#5E5E5E] mt-0.5">Importa todo automáticamente</p>
+                          <h4 className="text-sm font-bold text-prepeasy-primary-dark">Escanear recibo</h4>
+                          <p className="text-xs text-[#5E5E5E] mt-0.5">Importa tus ingredientes automáticamente</p>
                         </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-[#1F6B35]" />
@@ -1271,15 +1301,17 @@ export default function App() {
                     {/* Active list display */}
                     <div className="bg-white rounded-3xl border border-neutral-100 p-3 space-y-2 divide-y divide-neutral-50 shadow-xs">
                       {ingredients.map((ing) => {
-                        const isExpiringToday = ing.expirationDays === 0;
-                        const isExpiringTomorrow = ing.expirationDays === 1;
-                        const isExpiringIn2 = ing.expirationDays === 2;
-                        const isNearing = ing.expirationDays <= 2;
-                        
+                        const priorityConfig = {
+                          usar_hoy:     { text: 'Usar hoy',       color: 'text-prepeasy-error', border: 'border-red-200',    emoji: '🔴' },
+                          usar_pronto:  { text: 'Usar pronto',    color: 'text-amber-600',       border: 'border-amber-200',  emoji: '🟠' },
+                          esta_semana:  { text: 'Esta semana',    color: 'text-yellow-600',      border: 'border-yellow-200', emoji: '🟡' },
+                          sin_prisa:    { text: 'Sin prisa',      color: 'text-stone-400',       border: 'border-neutral-100',emoji: '🟢' },
+                        }[ing.priority ?? 'sin_prisa'];
+
                         return (
                           <div key={ing.id} className="pt-2 pb-1 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-xl overflow-hidden shrink-0 border ${isNearing ? 'border-red-200' : 'border-neutral-100'}`}>
+                              <div className={`w-10 h-10 rounded-xl overflow-hidden shrink-0 border ${priorityConfig.border}`}>
                                 <img
                                   src={getIngredientImage(ing)}
                                   alt={ing.name}
@@ -1292,13 +1324,8 @@ export default function App() {
                                 <div className="flex gap-1.5 items-center mt-0.5">
                                   <span className="text-xs text-stone-500 font-mono">{ing.quantity}</span>
                                   <span className="text-stone-300">•</span>
-                                  <span className={`text-xs font-bold flex items-center gap-1 ${
-                                    isExpiringToday ? 'text-prepeasy-error' : isNearing ? 'text-amber-600' : 'text-stone-500'
-                                  }`}>
-                                    {isExpiringToday && <><span>🔴</span> Vence hoy</>}
-                                    {isExpiringTomorrow && <><span>🟠</span> Vence mañana</>}
-                                    {isExpiringIn2 && <><span>🟡</span> Vence en 2 días</>}
-                                    {!isNearing && `Vence en ${ing.expirationDays} días`}
+                                  <span className={`text-xs font-bold flex items-center gap-1 ${priorityConfig.color}`}>
+                                    <span>{priorityConfig.emoji}</span>{priorityConfig.text}
                                   </span>
                                 </div>
                               </div>
@@ -1342,7 +1369,7 @@ export default function App() {
                 {/* Header */}
                 <div>
                   <h1 className="font-serif text-3xl font-bold text-prepeasy-text-primary tracking-tight">Planificador</h1>
-                  <p className="text-xs text-stone-500 mt-1">IA genera tu semana con lo que tienes en casa. v2</p>
+                  <p className="text-xs text-stone-500 mt-1">Aprovecha tus ingredientes con un menú para toda la semana.</p>
                 </div>
 
 
@@ -1443,18 +1470,19 @@ export default function App() {
 
 
 
-                    {/* Expiring ingredients summary card */}
+                    {/* Priority ingredients summary card */}
                     {(() => {
-                      const allExpiring = Array.from(new Map(
-                        ingredients.filter(i => i.expirationDays <= 3 && !pantryIsEmpty).map(i => [i.name.toLowerCase(), i])
-                      ).values());
-                      // Only show expiring ingredients that are actually used in the current plan
-                      const expiring = allExpiring.filter(ing =>
-                        weeklyPlan.recipes.some(r =>
-                          ALL_RECIPES.find(ar => ar.title === r.title)?.ingredientsNeeded.some(n => ingredientMatches(ing.name, n.name))
-                        )
-                      );
+                      const PORDER: IngredientPriority[] = ['usar_hoy', 'usar_pronto', 'esta_semana', 'sin_prisa'];
+                      const expiring = Array.from(new Map(
+                        ingredients
+                          .filter(i => (i.priority === 'usar_hoy' || i.priority === 'usar_pronto') && !pantryIsEmpty)
+                          .map(i => [i.name.toLowerCase(), i])
+                      ).values()).sort((a, b) => PORDER.indexOf(a.priority) - PORDER.indexOf(b.priority));
                       if (expiring.length === 0) return null;
+                      const allUseToday = expiring.every(i => i.priority === 'usar_hoy');
+                      const summaryText = allUseToday
+                        ? `que querías consumir hoy`
+                        : `marcados para usar pronto`;
                       const ingEmojis: Record<string, string> = {
                         espinaca: '🥬', aguacate: '🥑', tomate: '🍅', huevo: '🥚', pollo: '🍗',
                         platano: '🍌', plátano: '🍌', arroz: '🍚', salmon: '🐟', salmón: '🐟',
@@ -1468,7 +1496,7 @@ export default function App() {
                       return (
                         <div className="bg-prepeasy-primary-light border border-green-200 rounded-2xl p-4 space-y-3">
                           <p className="text-sm font-semibold text-prepeasy-text-primary leading-snug">
-                            Aprovecharás <span className="text-prepeasy-primary font-bold">{expiring.length} ingrediente{expiring.length > 1 ? 's' : ''}</span> que vencen pronto
+                            Aprovecha <span className="text-prepeasy-primary font-bold">{expiring.length} ingrediente{expiring.length > 1 ? 's' : ''}</span>
                           </p>
                           <div className="space-y-1.5">
                             {expiring.map((ing, i) => (
@@ -1501,7 +1529,7 @@ export default function App() {
                             <span className="text-xs font-bold text-prepeasy-primary tracking-wider uppercase">{planned.day}</span>
                             <h4 className="font-serif font-bold text-stone-800 text-base leading-tight">{planned.title}</h4>
                             {(() => {
-                              const expiring = ingredients.filter(i => i.expirationDays <= 3 && !pantryIsEmpty);
+                              const expiring = ingredients.filter(i => (i.priority === 'usar_hoy' || i.priority === 'usar_pronto') && !pantryIsEmpty);
                               const ingEmojis: Record<string, string> = {
                                 espinaca: '🥬', aguacate: '🥑', tomate: '🍅', huevo: '🥚', pollo: '🍗',
                                 platano: '🍌', plátano: '🍌', arroz: '🍚', salmon: '🐟', salmón: '🐟',
@@ -1946,26 +1974,40 @@ export default function App() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-stone-500 tracking-wider">Cantidad</label>
                     <div className="flex gap-2">
-                      <input
-                        type="number"
-                        min="0.01"
-                        step="any"
-                        value={newIngQtyAmount}
-                        onChange={(e) => { setNewIngQtyAmount(e.target.value === '' ? '' : Number(e.target.value)); setIngFormErrors(prev => ({ ...prev, qty: undefined })); }}
-                        className={`flex-1 text-sm py-3 pl-3 pr-3 bg-[#F7F9F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary border [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${ingFormErrors.qty ? 'border-[#EF5350]' : 'border-[#D5D5D5]'}`}
-                        placeholder="Ej: 150"
-                      />
+                      <div className={`flex items-center flex-1 bg-[#F7F9F6] rounded-xl border ${ingFormErrors.qty ? 'border-[#EF5350]' : 'border-[#D5D5D5]'} focus-within:ring-2 focus-within:ring-prepeasy-primary overflow-hidden`}>
+                        <button
+                          type="button"
+                          onClick={() => { const v = Math.max(1, Number(newIngQtyAmount || 1) - 1); setNewIngQtyAmount(v); setIngFormErrors(prev => ({ ...prev, qty: undefined })); }}
+                          className="w-11 h-12 flex items-center justify-center text-stone-500 hover:bg-stone-100 text-xl font-light shrink-0"
+                        >−</button>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={newIngQtyAmount}
+                          onChange={(e) => { setNewIngQtyAmount(e.target.value === '' ? '' : Number(e.target.value)); setIngFormErrors(prev => ({ ...prev, qty: undefined })); }}
+                          onFocus={(e) => e.target.select()}
+                          onKeyDown={(e) => { if (!/^\d$/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
+                          className="flex-1 text-sm text-center py-3 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { const v = Number(newIngQtyAmount || 0) + 1; setNewIngQtyAmount(v); setIngFormErrors(prev => ({ ...prev, qty: undefined })); }}
+                          className="w-11 h-12 flex items-center justify-center text-stone-500 hover:bg-stone-100 text-xl font-light shrink-0"
+                        >+</button>
+                      </div>
                       <div className="relative">
                         <select
                           value={newIngQtyUnit}
                           onChange={(e) => setNewIngQtyUnit(e.target.value as any)}
                           className="appearance-none text-sm py-3 pl-3 pr-8 bg-[#F7F9F6] border border-[#D5D5D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary h-[48px] w-24"
                         >
+                          <option value="unidades">un.</option>
                           <option value="g">g</option>
                           <option value="kg">kg</option>
                           <option value="ml">ml</option>
                           <option value="L">L</option>
-                          <option value="unidades">un.</option>
                         </select>
                         <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                       </div>
@@ -1973,37 +2015,32 @@ export default function App() {
                     {ingFormErrors.qty && <p className="text-xs text-[#EF5350] font-medium">{ingFormErrors.qty}</p>}
                   </div>
 
-                  {/* Días para caducar */}
+                  {/* Prioridad de uso */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-stone-500 tracking-wider">Días para caducar</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={newIngExpiry}
-                      onChange={(e) => setNewIngExpiry(parseInt(e.target.value) || 0)}
-                      className="w-full text-sm p-3 bg-[#F7F9F6] border border-[#D5D5D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary"
-                    />
-                  </div>
-
-                  {/* Category */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-stone-500 tracking-wider">Categoría</label>
-                    <div className="relative">
-                      <select
-                        value={newIngCategory}
-                        onChange={(e: any) => setNewIngCategory(e.target.value)}
-                        className="appearance-none w-full text-sm py-3 pl-3 pr-8 bg-[#F7F9F6] border border-[#D5D5D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary h-[48px]"
-                      >
-                        <option value="Verduras">Verduras 🥕</option>
-                        <option value="Carnes">Carnes 🍗</option>
-                        <option value="Lácteos">Lácteos 🥛</option>
-                        <option value="Granos">Granos 🌾</option>
-                        <option value="Condimentos">Condimentos 🧂</option>
-                        <option value="Otros">Otros ⚙</option>
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                    <label className="text-xs font-bold text-stone-500 tracking-wider">Prioridad de uso</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { id: 'usar_hoy',    dot: 'bg-red-500',    label: 'Usar hoy',    days: '1 día',   active: 'bg-red-50 border-red-400 text-red-700' },
+                        { id: 'usar_pronto', dot: 'bg-orange-400', label: 'Usar pronto', days: '3 días',  active: 'bg-orange-50 border-orange-400 text-orange-700' },
+                        { id: 'esta_semana', dot: 'bg-yellow-400', label: 'Esta semana', days: '7 días',  active: 'bg-yellow-50 border-yellow-400 text-yellow-700' },
+                        { id: 'sin_prisa',   dot: 'bg-green-500',  label: 'Sin prisa',   days: '30 días', active: 'bg-green-50 border-green-400 text-green-700' },
+                      ] as const).map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setNewIngPriority(opt.id)}
+                          className={`flex items-center justify-between p-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${newIngPriority === opt.id ? opt.active : 'bg-[#F7F9F6] border-[#D5D5D5] text-stone-500'}`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${opt.dot}`} />
+                            {opt.label}
+                          </span>
+                          <span className="text-[10px] font-normal opacity-50">{opt.days}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
+
                 </div>
 
                 <div className="pt-4 max-w-lg mx-auto w-full">
@@ -2055,39 +2092,64 @@ export default function App() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-stone-500 tracking-wider">Cantidad</label>
                     <div className="flex gap-2">
-                      <input type="number" min="0.01" step="any" value={newIngQtyAmount}
-                        onChange={(e) => { setNewIngQtyAmount(e.target.value === '' ? '' : Number(e.target.value)); setIngFormErrors(prev => ({ ...prev, qty: undefined })); }}
-                        className={`flex-1 text-sm py-3 pl-3 pr-3 bg-[#F7F9F6] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary border [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${ingFormErrors.qty ? 'border-[#EF5350]' : 'border-[#D5D5D5]'}`}
-                      />
+                      <div className={`flex items-center flex-1 bg-[#F7F9F6] rounded-xl border ${ingFormErrors.qty ? 'border-[#EF5350]' : 'border-[#D5D5D5]'} focus-within:ring-2 focus-within:ring-prepeasy-primary overflow-hidden`}>
+                        <button
+                          type="button"
+                          onClick={() => { const v = Math.max(1, Number(newIngQtyAmount || 1) - 1); setNewIngQtyAmount(v); setIngFormErrors(prev => ({ ...prev, qty: undefined })); }}
+                          className="w-11 h-12 flex items-center justify-center text-stone-500 hover:bg-stone-100 text-xl font-light shrink-0"
+                        >−</button>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={newIngQtyAmount}
+                          onChange={(e) => { setNewIngQtyAmount(e.target.value === '' ? '' : Number(e.target.value)); setIngFormErrors(prev => ({ ...prev, qty: undefined })); }}
+                          onFocus={(e) => e.target.select()}
+                          onKeyDown={(e) => { if (!/^\d$/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
+                          className="flex-1 text-sm text-center py-3 bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { const v = Number(newIngQtyAmount || 0) + 1; setNewIngQtyAmount(v); setIngFormErrors(prev => ({ ...prev, qty: undefined })); }}
+                          className="w-11 h-12 flex items-center justify-center text-stone-500 hover:bg-stone-100 text-xl font-light shrink-0"
+                        >+</button>
+                      </div>
                       <div className="relative">
                         <select value={newIngQtyUnit} onChange={(e) => setNewIngQtyUnit(e.target.value as any)}
                           className="appearance-none text-sm py-3 pl-3 pr-8 bg-[#F7F9F6] border border-[#D5D5D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary h-[48px] w-24">
-                          <option value="g">g</option><option value="kg">kg</option>
-                          <option value="ml">ml</option><option value="L">L</option>
                           <option value="unidades">un.</option>
+                          <option value="g">g</option>
+                          <option value="kg">kg</option>
+                          <option value="ml">ml</option>
+                          <option value="L">L</option>
                         </select>
                         <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                       </div>
                     </div>
                     {ingFormErrors.qty && <p className="text-xs text-[#EF5350] font-medium">{ingFormErrors.qty}</p>}
                   </div>
+                  {/* Prioridad de uso — edit modal */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-stone-500 tracking-wider">Días para caducar</label>
-                    <input type="number" min="0" value={newIngExpiry}
-                      onChange={(e) => setNewIngExpiry(parseInt(e.target.value) || 0)}
-                      className="w-full text-sm p-3 bg-[#F7F9F6] border border-[#D5D5D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-stone-500 tracking-wider">Categoría</label>
-                    <div className="relative">
-                      <select value={newIngCategory} onChange={(e: any) => setNewIngCategory(e.target.value)}
-                        className="appearance-none w-full text-sm py-3 pl-3 pr-8 bg-[#F7F9F6] border border-[#D5D5D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-prepeasy-primary h-[48px]">
-                        <option value="Verduras">Verduras 🥕</option><option value="Carnes">Carnes 🍗</option>
-                        <option value="Lácteos">Lácteos 🥛</option><option value="Granos">Granos 🌾</option>
-                        <option value="Condimentos">Condimentos 🧂</option><option value="Otros">Otros ⚙</option>
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                    <label className="text-xs font-bold text-stone-500 tracking-wider">Prioridad de uso</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { id: 'usar_hoy',    dot: 'bg-red-500',    label: 'Usar hoy',    days: '1 día',   active: 'bg-red-50 border-red-400 text-red-700' },
+                        { id: 'usar_pronto', dot: 'bg-orange-400', label: 'Usar pronto', days: '3 días',  active: 'bg-orange-50 border-orange-400 text-orange-700' },
+                        { id: 'esta_semana', dot: 'bg-yellow-400', label: 'Esta semana', days: '7 días',  active: 'bg-yellow-50 border-yellow-400 text-yellow-700' },
+                        { id: 'sin_prisa',   dot: 'bg-green-500',  label: 'Sin prisa',   days: '30 días', active: 'bg-green-50 border-green-400 text-green-700' },
+                      ] as const).map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setNewIngPriority(opt.id)}
+                          className={`flex items-center gap-2 p-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${newIngPriority === opt.id ? opt.active : 'bg-[#F7F9F6] border-[#D5D5D5] text-stone-500'}`}
+                        >
+                          <span className={`inline-block w-2.5 h-2.5 rounded-full shrink-0 ${opt.dot}`} />
+                          <span className="flex-1 text-left">{opt.label}</span>
+                          <span className="text-[10px] font-normal opacity-60">{opt.days}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>

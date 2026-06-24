@@ -848,8 +848,8 @@ export const ALL_RECIPES: Recipe[] = [
     id: 'r_aguacate_04',
     title: 'Pollo con Crema de Aguacate',
     description: 'Pechuga de pollo a la plancha sobre salsa cremosa de aguacate con limón y cilantro.',
-    prepTime: 25,
-    energyLevel: 'balanced',
+    prepTime: 35,
+    energyLevel: 'disconnect',
     utensils: ['sartén', 'licuadora o tazón', 'cuchillo'],
     ingredientsNeeded: [
       { name: 'pechuga de pollo', required: true, inPantry: false },
@@ -1002,7 +1002,7 @@ export const ALL_RECIPES: Recipe[] = [
     id: 'r_aguacate_10',
     title: 'Ceviche de Camarón con Aguacate',
     description: 'Ceviche colombiano de camarones cocidos con limón, cebolla morada, cilantro y aguacate fresco.',
-    prepTime: 20,
+    prepTime: 35,
     energyLevel: 'balanced',
     utensils: ['tazón grande', 'cuchillo', 'tabla de cortar'],
     ingredientsNeeded: [
