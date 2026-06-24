@@ -202,13 +202,27 @@ export default function App() {
       quantity: `${newIngQtyAmount} ${newIngQtyUnit}`,
       isNearingExpiry: newIngExpiry <= 2
     };
-    saveIngredients([newIng, ...ingredients]);
+    const updatedIngredients = [newIng, ...ingredients];
+    saveIngredients(updatedIngredients);
     setNewIngName('');
     setNewIngQtyAmount('');
     setNewIngQtyUnit('g');
     setIngFormErrors({});
     setShowAddIngredientModal(false);
     setPantryIsEmpty(false);
+
+    // If this ingredient has no matching static recipe and is expiring soon, auto-generate via AI
+    const hasStaticRecipe = ALL_RECIPES.some(r =>
+      r.ingredientsNeeded.some(n => ingredientMatches(newIng.name, n.name))
+    );
+    const key = localStorage.getItem('openrouter_api_key') ?? import.meta.env.VITE_OPENROUTER_API_KEY ?? '';
+    if (!hasStaticRecipe && newIngExpiry <= 7 && key && !generatedIngredientsRef.current.has(cleanIngredient(newIng.name))) {
+      generatedIngredientsRef.current.add(cleanIngredient(newIng.name));
+      setActiveTab('inicio');
+      generateAIRecipe(newIng.name);
+    } else {
+      setActiveTab('inicio');
+    }
   };
 
   // Action: Complete cooking recipe
@@ -511,17 +525,6 @@ Responde ÚNICAMENTE con JSON válido, sin markdown ni explicaciones:
       setIsGeneratingAIRecipe(false);
     }
   };
-
-  // Auto-generate recipes for expiring ingredients with no static match
-  useEffect(() => {
-    if (!openrouterKey || isGeneratingAIRecipe || expiringWithNoRecipe.length === 0) return;
-    const ungenerated = expiringWithNoRecipe.find(
-      ing => !generatedIngredientsRef.current.has(cleanIngredient(ing.name))
-    );
-    if (!ungenerated) return;
-    generatedIngredientsRef.current.add(cleanIngredient(ungenerated.name));
-    generateAIRecipe(ungenerated.name);
-  }, [expiringWithNoRecipe.map(i => i.name).join(','), openrouterKey]);
 
   return (
     <div className="min-h-screen bg-[#F0F4EE] flex flex-col items-center justify-center font-sans overflow-hidden text-neutral-800 relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/90 via-[#F0F4EE] to-[#E2EBE0]">
