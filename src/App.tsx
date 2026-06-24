@@ -345,7 +345,7 @@ export default function App() {
     })
     .sort((a, b) => b._score - a._score);
 
-  const generateWeeklyPlan = (mode: PlannerMode = plannerMode) => {
+  const generateWeeklyPlan = (mode: PlannerMode = plannerMode, priorityIngredients: string[] = []) => {
     if (ingredients.length === 0) return;
     setPlannerError(null);
     setShowMissingIngredients(false);
@@ -364,7 +364,11 @@ export default function App() {
         const pantryScore = r.ingredientsNeeded.filter(n =>
           ingredients.some(i => ingredientMatches(i.name, n.name))
         ).length;
-        return { recipe: r, score: expiringScore + pantryScore };
+        // Heavily boost recipes that use forced priority ingredients (from CTA)
+        const priorityScore = priorityIngredients.filter(name =>
+          r.ingredientsNeeded.some(n => ingredientMatches(name, n.name))
+        ).length * 10;
+        return { recipe: r, score: expiringScore + pantryScore + priorityScore };
       }).sort((a, b) => b.score - a.score);
 
       const picked = scored.slice(0, 5).map(s => s.recipe);
@@ -1315,7 +1319,7 @@ export default function App() {
                                 : `${uncovered.length} ingredientes vencen pronto y no están en tu plan`}
                             </p>
                             <button
-                              onClick={generateWeeklyPlan}
+                              onClick={() => generateWeeklyPlan(plannerMode, uncovered.map(i => i.name))}
                               className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition-all"
                             >
                               Regenerar incluyéndolos
