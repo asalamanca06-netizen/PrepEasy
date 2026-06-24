@@ -103,6 +103,7 @@ export default function App() {
     return localStorage.getItem('weeklyPlan') ? 'ready' : 'empty';
   });
   const [showMissingIngredients, setShowMissingIngredients] = useState(false);
+  const [plannerError, setPlannerError] = useState<string | null>(null);
 
   // Cooking step tracking
   const [activeCookingRecipe, setActiveCookingRecipe] = useState<Recipe | null>(null);
@@ -352,6 +353,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
     } catch (e) {
       console.error('Planner error:', e);
       setPlannerStatus('error');
+      setPlannerError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -1231,6 +1233,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown, sin explicaciones extra:
                     <div className="space-y-1">
                       <h2 className="font-serif text-xl font-bold text-prepeasy-text-primary">Algo salió mal</h2>
                       <p className="text-xs text-stone-500">No pudimos generar tu plan. Revisa tu conexión e intenta de nuevo.</p>
+                      {plannerError && <p className="text-xs text-red-400 font-mono break-all mt-1">{plannerError}</p>}
                     </div>
                     <button
                       onClick={generateWeeklyPlan}
